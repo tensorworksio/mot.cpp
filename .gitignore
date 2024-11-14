@@ -1,0 +1,9 @@
+.cache
+.vscode
+.DS_Store
+.mypy_cache
+
+build
+builddir
+data
+venv
