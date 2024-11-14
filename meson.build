@@ -11,10 +11,13 @@ boost_dep = dependency('boost', modules : ['filesystem', 'program_options', 'jso
 opencv_dep = dependency('opencv4', modules : ['core', 'highgui', 'imgproc', 'imgcodecs', 'video', 'videoio'])
 
 # Source files
+kalman_files = run_command('find', 'src/kalman', '-name', '*.cpp', check: true).stdout().strip().split('\n')
+
+
 src_files = files(
   'src/sort.cpp',
   'src/botsort.cpp'
-)
+) + kalman_files
 
 # Build shared library
 library('mot', src_files,
