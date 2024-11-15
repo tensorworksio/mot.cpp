@@ -1,5 +1,5 @@
 #include <iostream>
-#include <kalman/xywh.hpp>
+#include <kalman/xysr.hpp>
 #include <opencv2/opencv.hpp>
 
 void printRect(cv::Rect2f &rect)
@@ -10,7 +10,7 @@ void printRect(cv::Rect2f &rect)
 int main(int argc, char **argv)
 {
   cv::Rect2f rect{100.f, 200.f, 300.f, 400.f};
-  KalmanFilterXYWH kf(rect);
+  KalmanFilterXYSR kf(rect);
 
   auto position = kf.predict();
   printRect(position);
