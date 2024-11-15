@@ -15,6 +15,7 @@ src_files = files(
   'src/kalman/xywh.cpp',
   'src/kalman/xysr.cpp',
   'src/track/base.cpp',
+  'src/track/sort.cpp',
   'src/tracker/sort.cpp',
   'src/tracker/botsort.cpp'
 )

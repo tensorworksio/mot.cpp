@@ -1,3 +1,4 @@
+#include <track/sort.hpp>
 #include <tracker/sort.hpp>
 #include <common/metrics.hpp>
 #include <dlib/optimization/max_cost_assignment.h>
@@ -53,7 +54,51 @@ void Sort::assign(std::vector<Detection> &detections,
     }
 }
 
-void process(Frame &frame)
+void Sort::process(Frame &frame)
 {
-    return;
+
+    std::vector<Detection> &detections = frame.detections;
+    std::set<std::pair<size_t, size_t>> matches;
+    std::set<size_t> unmatched_detections;
+    std::set<size_t> unmatched_tracks;
+
+    // Propagate tracks
+    for (auto &track : tracks)
+    {
+        track->predict();
+    }
+
+    // Assign detections to tracks
+    assign(detections, config.match_thresh, matches, unmatched_detections, unmatched_tracks);
+
+    // Update tracks
+    for (const auto &[det_idx, track_idx] : matches)
+    {
+        tracks[track_idx]->update(detections[det_idx]);
+        detections[det_idx].id = tracks[track_idx]->id;
+    }
+
+    // Create new tracks
+    for (const auto &det_idx : unmatched_detections)
+    {
+        auto new_track = std::make_unique<SortTrack>(detections[det_idx].bbox, config.kalman);
+        tracks.push_back(std::move(new_track));
+    }
+
+    for (const auto &track_idx : unmatched_tracks)
+    {
+        if (tracks[track_idx]->time_since_update > config.max_time_lost)
+        {
+            tracks[track_idx]->markRemoved();
+        }
+        else
+        {
+            tracks[track_idx]->markLost();
+        }
+    }
+
+    // Remove tracks
+    tracks.erase(std::remove_if(tracks.begin(), tracks.end(), [](const auto &track)
+                                { return track->isRemoved(); }),
+                 tracks.end());
 }
