@@ -14,10 +14,8 @@ opencv_dep = dependency('opencv4', modules : ['core', 'highgui', 'imgproc', 'img
 src_files = files(
   'src/kalman/xywh.cpp',
   'src/kalman/xysr.cpp',
-  'src/track/base.cpp',
-  'src/track/sort.cpp',
-  'src/tracker/sort.cpp',
-  'src/tracker/botsort.cpp'
+  'src/tracking/base.cpp',
+  'src/tracking/sort.cpp'
 )
 
 # Build shared library

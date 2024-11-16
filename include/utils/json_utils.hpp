@@ -1,7 +1,16 @@
 #pragma once
 
 #include <memory>
+#include <fstream>
 #include <nlohmann/json.hpp>
+
+inline bool isFileAccessible(const std::string &filename)
+{
+    if (filename.empty())
+        return false;
+    std::ifstream file(filename);
+    return file.good();
+}
 
 struct JsonConfig
 {

@@ -1,9 +1,14 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <stdexcept>
+#include <array>
 #include <kalman/base.hpp>
+#include <common/frame.hpp>
 #include <common/detection.hpp>
 
+constexpr float PRECISION = 1E6f;
 constexpr size_t MAX_HISTORY = 50;
 
 enum class TrackState : int
@@ -42,4 +47,15 @@ struct BaseTrack
     void markActive() { state = TrackState::Tracked; }
     void markLost() { state = TrackState::Lost; }
     void markRemoved() { state = TrackState::Removed; }
+};
+
+class BaseTracker
+{
+public:
+    BaseTracker() = default;
+    virtual ~BaseTracker() = default;
+    virtual void process(Frame &frame) = 0;
+
+protected:
+    std::vector<std::unique_ptr<BaseTrack>> tracks{};
 };

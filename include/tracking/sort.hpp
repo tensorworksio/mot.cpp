@@ -1,8 +1,14 @@
 #pragma once
 
-#include <fstream>
-#include <tracker/base.hpp>
+#include <tracking/base.hpp>
 #include <utils/json_utils.hpp>
+
+struct SortTrack : BaseTrack
+{
+    SortTrack(const cv::Rect2f &rect, const KalmanConfig &config);
+    void predict() override;
+    void update(Detection &det) override;
+};
 
 struct SortConfig : public JsonConfig
 {
