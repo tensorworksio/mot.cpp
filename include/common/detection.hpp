@@ -5,11 +5,15 @@
 
 struct Detection
 {
+    // MOT format
     int frame;
     int id;
     cv::Rect2f bbox;
     float confidence;
     cv::Point3f position;
+
+    // Extra data
+    std::vector<float> features{};
 
     cv::Scalar getColor() const
     {

@@ -15,7 +15,8 @@ src_files = files(
   'src/kalman/xywh.cpp',
   'src/kalman/xysr.cpp',
   'src/tracking/base.cpp',
-  'src/tracking/sort.cpp'
+  'src/tracking/sort.cpp',
+  'src/tracking/botsort.cpp'
 )
 
 # Build shared library

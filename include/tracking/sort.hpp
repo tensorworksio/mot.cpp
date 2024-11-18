@@ -13,6 +13,7 @@ struct SortTrack : BaseTrack
 struct SortConfig : public JsonConfig
 {
     KalmanConfig kalman{};
+
     size_t max_time_lost = 15;
     float match_thresh = 0.3f;
 
@@ -48,7 +49,7 @@ public:
 
 private:
     const SortConfig config;
-    void assign(std::vector<Detection> &detections,
+    void assign(std::vector<std::unique_ptr<Detection>> &detections,
                 float match_thresh,
                 std::set<std::pair<size_t, size_t>> &matches,
                 std::set<size_t> &unmatched_detections,

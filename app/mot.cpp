@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 
             if (detection.frame == frame.idx)
             {
-                frame.detections.push_back(detection);
+                frame.detections.push_back(std::make_unique<Detection>(detection));
             }
             else
             {
@@ -161,15 +161,15 @@ int main(int argc, char **argv)
         // Write detections to file
         for (const auto &detection : frame.detections)
         {
-            outfile << detection << std::endl;
+            outfile << *detection << std::endl;
         }
 
         // Display frame with detections
         for (const auto &detection : frame.detections)
         {
-            auto color = detection.getColor();
-            cv::rectangle(frame.image, detection.bbox, color, 2);
-            cv::putText(frame.image, std::to_string(detection.id), cv::Point(detection.bbox.x, detection.bbox.y), cv::FONT_HERSHEY_SIMPLEX, 1, color, 2);
+            auto color = detection->getColor();
+            cv::rectangle(frame.image, detection->bbox, color, 2);
+            cv::putText(frame.image, std::to_string(detection->id), cv::Point(detection->bbox.x, detection->bbox.y), cv::FONT_HERSHEY_SIMPLEX, 1, color, 2);
         }
 
         // Write video

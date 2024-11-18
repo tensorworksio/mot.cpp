@@ -1,6 +1,6 @@
 #include <kalman/xywh.hpp>
-#include <tracking/sort.hpp>
 #include <common/metrics.hpp>
+#include <tracking/sort.hpp>
 #include <dlib/optimization/max_cost_assignment.h>
 
 SortTrack::SortTrack(const cv::Rect2f &rect, const KalmanConfig &config) : BaseTrack(std::make_shared<KalmanFilterXYWH>(rect, config)) {}
@@ -18,7 +18,7 @@ void SortTrack::update(Detection &det)
     BaseTrack::update(det);
 }
 
-void Sort::assign(std::vector<Detection> &detections,
+void Sort::assign(std::vector<std::unique_ptr<Detection>> &detections,
                   float match_thresh,
                   std::set<std::pair<size_t, size_t>> &matches,
                   std::set<size_t> &unmatched_detections,
@@ -49,7 +49,7 @@ void Sort::assign(std::vector<Detection> &detections,
     {
         for (size_t j = 0; j < tracks.size(); ++j)
         {
-            cost_matrix(i, j) = static_cast<int>(PRECISION * iou(detections[i].bbox, tracks[j]->getBox()));
+            cost_matrix(i, j) = static_cast<int>(PRECISION * getIoU(detections[i]->bbox, tracks[j]->getBox()));
         }
     }
 
@@ -72,7 +72,7 @@ void Sort::assign(std::vector<Detection> &detections,
 void Sort::process(Frame &frame)
 {
 
-    std::vector<Detection> &detections = frame.detections;
+    std::vector<std::unique_ptr<Detection>> &detections = frame.detections;
     std::set<std::pair<size_t, size_t>> matches;
     std::set<size_t> unmatched_detections;
     std::set<size_t> unmatched_tracks;
@@ -89,14 +89,14 @@ void Sort::process(Frame &frame)
     // Update tracks
     for (const auto &[det_idx, track_idx] : matches)
     {
-        tracks[track_idx]->update(detections[det_idx]);
-        detections[det_idx].id = tracks[track_idx]->id;
+        tracks[track_idx]->update(*detections[det_idx]);
+        detections[det_idx]->id = tracks[track_idx]->id;
     }
 
     // Create new tracks
     for (const auto &det_idx : unmatched_detections)
     {
-        auto new_track = std::make_unique<SortTrack>(detections[det_idx].bbox, config.kalman);
+        auto new_track = std::make_unique<SortTrack>(detections[det_idx]->bbox, config.kalman);
         tracks.push_back(std::move(new_track));
     }
 
