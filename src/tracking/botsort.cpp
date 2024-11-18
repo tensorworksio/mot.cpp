@@ -29,8 +29,8 @@ void BotSortTrack::update(Detection &det)
     BaseTrack::update(det);
 }
 
-void BotSort::assign(std::vector<Detection *> dets,
-                     std::vector<BotSortTrack *> trks,
+void BotSort::assign(std::vector<Detection *> &dets,
+                     std::vector<BotSortTrack *> &trks,
                      float match_thresh,
                      float proximity_thresh,
                      float appearance_thresh,
@@ -125,7 +125,6 @@ void BotSort::process(Frame &frame)
             continue;
         else if (bot_track->isActive())
             active_tracks.push_back(bot_track);
-
         else if (bot_track->isLost())
         {
             lost_tracks.push_back(bot_track);
@@ -136,7 +135,7 @@ void BotSort::process(Frame &frame)
     }
 
     // Propagate tracks
-    for (auto &track : active_tracks)
+    for (auto &track : tracks)
     {
         track->predict();
     }
@@ -245,8 +244,8 @@ void BotSort::process(Frame &frame)
         auto *det = unconfirmed_detections[det_idx];
         if (det->confidence > config.new_track_thresh)
         {
-            auto track = BotSortTrack(det->bbox, det->features, config.kalman);
-            tracks.push_back(std::make_unique<BotSortTrack>(track));
+            auto new_track = std::make_unique<BotSortTrack>(det->bbox, det->features, config.kalman);
+            tracks.push_back(std::move(new_track));
         }
     }
 

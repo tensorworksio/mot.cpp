@@ -77,8 +77,8 @@ public:
 
 private:
     const BotSortConfig config;
-    void assign(std::vector<Detection *> dets,
-                std::vector<BotSortTrack *> trks,
+    void assign(std::vector<Detection *> &dets,
+                std::vector<BotSortTrack *> &trks,
                 float match_thresh,
                 float proximity_thresh,
                 float appearance_thresh,
