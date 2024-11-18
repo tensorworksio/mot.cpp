@@ -2,10 +2,12 @@
 
 #include <tracking/base.hpp>
 #include <tracking/sort.hpp>
+#include <tracking/botsort.hpp>
 
 enum class TrackerType
 {
     SORT,
+    BOTSORT,
     UNKNOWN
 };
 
@@ -15,6 +17,8 @@ inline std::string getTrackerName(TrackerType type)
     {
     case TrackerType::SORT:
         return "sort";
+    case TrackerType::BOTSORT:
+        return "botsort";
     default:
         throw std::runtime_error("Unknown tracker type");
     }
@@ -22,7 +26,7 @@ inline std::string getTrackerName(TrackerType type)
 
 inline auto &getTrackers()
 {
-    static std::array<TrackerType, 1> trackers{TrackerType::SORT};
+    static std::array<TrackerType, 2> trackers{TrackerType::SORT, TrackerType::BOTSORT};
     return trackers;
 }
 
@@ -49,6 +53,11 @@ public:
         {
             auto config = isFileAccessible(config_file) ? SortConfig::load(config_file) : SortConfig();
             return std::make_unique<Sort>(config);
+        }
+        case (TrackerType::BOTSORT):
+        {
+            auto config = isFileAccessible(config_file) ? BotSortConfig::load(config_file) : BotSortConfig();
+            return std::make_unique<BotSort>(config);
         }
         default:
             throw std::runtime_error("Unknown tracker type");
