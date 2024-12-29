@@ -20,14 +20,24 @@ src_files = files(
 )
 
 # Build shared library
-library('mot', src_files,
-  dependencies : [spdlog_dep, json_dep, dlib_dep, boost_dep, opencv_dep],
-  include_directories : inc_dir
+mot_lib =library(
+  'mot', 
+  sources: src_files,
+  include_directories: inc_dir,
+  dependencies : [spdlog_dep, json_dep, dlib_dep, boost_dep, opencv_dep]
 )
 
-# Main executable
-executable('mot', [src_files, 'app/mot.cpp'],
+# Export Dependencies
+mot_dep = declare_dependency(
+  link_with: mot_lib,
+  include_directories: inc_dir
+)
+
+# Executable
+executable(
+  'mot', 
+  sources: [src_files, 'app/mot.cpp'],
+  include_directories: inc_dir,
   dependencies : [spdlog_dep, json_dep, dlib_dep, boost_dep, opencv_dep],
-  include_directories : inc_dir,
   install : true
 )

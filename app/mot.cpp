@@ -144,6 +144,8 @@ int main(int argc, char **argv)
             iss.str("");
             iss.clear();
 
+            std::cout << detection << std::endl;
+
             if (detection.frame == frame.idx)
             {
                 frame.detections.push_back(std::make_unique<Detection>(detection));
