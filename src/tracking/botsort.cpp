@@ -1,7 +1,7 @@
-#include <kalman/xywh.hpp>
-#include <common/metrics.hpp>
 #include <tracking/botsort.hpp>
 #include <utils/vector_utils.hpp>
+#include <utils/geometry_utils.hpp>
+#include <kalman/xywh.hpp>
 #include <dlib/optimization/max_cost_assignment.h>
 
 BotSortTrack::BotSortTrack(const cv::Rect2f &rect, const KalmanConfig &config) : BaseTrack(std::make_shared<KalmanFilterXYWH>(rect, config)) {}
@@ -95,21 +95,21 @@ void BotSort::assign(std::vector<Detection *> &dets,
     }
 }
 
-void BotSort::process(Frame &frame)
+void BotSort::update(std::vector<Detection> &detections)
 {
     // Detection bins
     std::vector<Detection *> high_score_detections{};
     std::vector<Detection *> low_score_detections{};
     std::vector<Detection *> unconfirmed_detections{};
 
-    for (auto &det : frame.detections)
+    for (auto &det : detections)
     {
-        if (det->confidence >= config.track_high_thresh)
-            high_score_detections.push_back(det.get());
-        else if (det->confidence >= config.track_low_thresh)
-            low_score_detections.push_back(det.get());
+        if (det.confidence >= config.track_high_thresh)
+            high_score_detections.push_back(&det);
+        else if (det.confidence >= config.track_low_thresh)
+            low_score_detections.push_back(&det);
         else
-            unconfirmed_detections.push_back(det.get());
+            unconfirmed_detections.push_back(&det);
     }
 
     // Track bins

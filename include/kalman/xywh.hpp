@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base.hpp"
+#include "kalman.hpp"
 
 class KalmanFilterXYWH : public BaseKalmanFilter
 {

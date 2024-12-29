@@ -3,9 +3,10 @@
 #include <string>
 
 #include <opencv2/opencv.hpp>
-#include <tracking/tracker.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+
+#include <tracking/factory.hpp>
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
@@ -13,7 +14,13 @@ namespace po = boost::program_options;
 void getSequenceInfo(const fs::path &iniFilePath, po::variables_map &vm)
 {
     po::options_description config("Sequence info");
-    config.add_options()("Sequence.name", po::value<std::string>(), "Sequence name")("Sequence.imDir", po::value<std::string>(), "Image directory")("Sequence.frameRate", po::value<double>(), "Frame rate")("Sequence.seqLength", po::value<int>(), "Sequence length")("Sequence.imWidth", po::value<int>(), "Image width")("Sequence.imHeight", po::value<int>(), "Image height")("Sequence.imExt", po::value<std::string>(), "Image extension");
+    config.add_options()("Sequence.name", po::value<std::string>(), "Sequence name");
+    config.add_options()("Sequence.imDir", po::value<std::string>(), "Image directory");
+    config.add_options()("Sequence.frameRate", po::value<double>(), "Frame rate");
+    config.add_options()("Sequence.seqLength", po::value<int>(), "Sequence length");
+    config.add_options()("Sequence.imWidth", po::value<int>(), "Image width");
+    config.add_options()("Sequence.imHeight", po::value<int>(), "Image height");
+    config.add_options()("Sequence.imExt", po::value<std::string>(), "Image extension");
 
     std::ifstream iniFile(iniFilePath.string());
     if (!iniFile)
@@ -30,7 +37,12 @@ int main(int argc, char **argv)
 {
 
     po::options_description desc(" options");
-    desc.add_options()("help,h", "multi object tracker")("tracker,t", po::value<std::string>()->required())("path,p", po::value<std::string>()->required(), "Path to MOT sequence folder")("config,c", po::value<std::string>()->default_value(""), "Path to SORT config.json")("gt", po::bool_switch()->default_value(false), "Ground truth mode")("display", po::bool_switch()->default_value(false), "Display frames")("save", po::bool_switch()->default_value(false), "Save video");
+    desc.add_options()("help,h", "multi object tracker");
+    desc.add_options()("config,c", po::value<std::string>()->default_value(""), "Path to config.json");
+    desc.add_options()("path,p", po::value<std::string>()->required(), "Path to MOT sequence folder");
+    desc.add_options()("gt", po::bool_switch()->default_value(false), "Ground truth mode");
+    desc.add_options()("display", po::bool_switch()->default_value(false), "Display frames");
+    desc.add_options()("save", po::bool_switch()->default_value(false), "Save video");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -44,8 +56,8 @@ int main(int argc, char **argv)
     po::notify(vm);
 
     // Tracker config
-    TrackerType type = getTrackerType(vm["tracker"].as<std::string>());
-    auto tracker = TrackerFactory::create(type, vm["config"].as<std::string>());
+    std::string configPath = vm["config"].as<std::string>();
+    auto tracker = TrackerFactory::create(configPath);
 
     // Display
     bool display = vm["display"].as<bool>();
@@ -110,7 +122,7 @@ int main(int argc, char **argv)
     std::string next_line;
 
     Detection detection;
-    Frame frame;
+    cv::Mat frame;
 
     std::vector<fs::path> imageFiles;
     for (const auto &entry : fs::directory_iterator(imgPath))
@@ -120,11 +132,14 @@ int main(int argc, char **argv)
 
     std::sort(imageFiles.begin(), imageFiles.end());
 
+    int frameIdx = 0;
+    std::vector<Detection> detections;
+
     for (const auto &path : imageFiles)
     {
-        frame.idx++;
-        frame.image = cv::imread(path.string());
-        frame.detections.clear();
+        frameIdx++;
+        frame = cv::imread(path.string());
+        detections.clear();
 
         // Read detections from file
         while (true)
@@ -146,9 +161,9 @@ int main(int argc, char **argv)
 
             std::cout << detection << std::endl;
 
-            if (detection.frame == frame.idx)
+            if (detection.frame == frameIdx)
             {
-                frame.detections.push_back(std::make_unique<Detection>(detection));
+                detections.push_back(detection);
             }
             else
             {
@@ -157,32 +172,35 @@ int main(int argc, char **argv)
             }
         }
 
-        // Process frame
-        tracker->process(frame);
+        // Process detections
+        tracker->update(detections);
 
         // Write detections to file
-        for (const auto &detection : frame.detections)
+        for (const auto &detection : detections)
         {
-            outfile << *detection << std::endl;
+            outfile << detection << std::endl;
         }
 
-        // Display frame with detections
-        for (const auto &detection : frame.detections)
+        // Visualize results
+        for (const auto &det : detections)
         {
-            auto color = detection->getColor();
-            cv::rectangle(frame.image, detection->bbox, color, 2);
-            cv::putText(frame.image, std::to_string(detection->id), cv::Point(detection->bbox.x, detection->bbox.y), cv::FONT_HERSHEY_SIMPLEX, 1, color, 2);
+            cv::rectangle(frame, det.bbox, det.getColor(), 2);
+            std::string label = det.class_name + " ID:" + std::to_string(det.id);
+            cv::putText(frame, label,
+                        cv::Point(det.bbox.x, det.bbox.y - 5),
+                        cv::FONT_HERSHEY_SIMPLEX, 0.5, det.getColor(), 2);
         }
 
         // Write video
         if (saveVideo)
         {
-            videoWriter.write(frame.image);
+            videoWriter.write(frame);
         }
+
         // Display
         if (display)
         {
-            cv::imshow("Frame", frame.image);
+            cv::imshow("Frame", frame);
         }
         if (cv::waitKey(1000 / fps) == 27)
         {

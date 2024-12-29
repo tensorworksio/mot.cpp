@@ -1,0 +1,4 @@
+[wrap-git]
+directory = vision-core
+url = https://github.com/tensorworksio/vision-core.git
+revision = main

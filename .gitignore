@@ -7,3 +7,6 @@ build
 builddir
 data
 venv
+
+subprojects/*
+!subprojects/*.wrap

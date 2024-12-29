@@ -1,66 +1,64 @@
 #pragma once
 
-#include <tracking/base.hpp>
-#include <tracking/sort.hpp>
-#include <tracking/botsort.hpp>
+#include <memory>
+#include <string>
+#include <stdexcept>
+#include <array>
 
-enum class TrackerType
+#include <types/frame.hpp>
+#include <types/detection.hpp>
+
+#include <kalman/kalman.hpp>
+
+constexpr float PRECISION = 1E6f;
+constexpr size_t MAX_HISTORY = 50;
+
+enum class TrackState : int
 {
-    SORT,
-    BOTSORT,
-    UNKNOWN
+    New = 0,
+    Tracked = 1,
+    Lost = 2,
+    Removed = 3
 };
 
-inline std::string getTrackerName(TrackerType type)
+struct BaseTrack
 {
-    switch (type)
-    {
-    case TrackerType::SORT:
-        return "sort";
-    case TrackerType::BOTSORT:
-        return "botsort";
-    default:
-        throw std::runtime_error("Unknown tracker type");
-    }
-}
+    static size_t count;
+    int id = 0;
+    size_t age = 0;
+    size_t time_since_update = 0;
+    TrackState state = TrackState::New;
+    std::vector<cv::Rect2f> history;
+    std::shared_ptr<BaseKalmanFilter> kf = nullptr;
 
-inline auto &getTrackers()
-{
-    static std::array<TrackerType, 2> trackers{TrackerType::SORT, TrackerType::BOTSORT};
-    return trackers;
-}
+    BaseTrack(std::shared_ptr<BaseKalmanFilter> kalman_filter);
+    virtual ~BaseTrack();
 
-inline TrackerType getTrackerType(std::string name)
-{
-    for (const auto &tracker_type : getTrackers())
-    {
-        if (name == getTrackerName(tracker_type))
-        {
-            return tracker_type;
-        }
-    }
-    return TrackerType::UNKNOWN;
-}
+    virtual void update(Detection &det);
+    virtual void predict();
+    virtual cv::Rect2f getBox() const;
+    virtual cv::Point2f getVelocity() const;
 
-class TrackerFactory
+    static int getNextId() { return ++count; }
+    void clearCount() { count = 0; }
+
+    bool isActive() const { return state == TrackState::Tracked; }
+    bool isLost() const { return state == TrackState::Lost; }
+    bool isRemoved() const { return state == TrackState::Removed; }
+
+    void markActive() { state = TrackState::Tracked; }
+    void markLost() { state = TrackState::Lost; }
+    void markRemoved() { state = TrackState::Removed; }
+};
+
+class BaseTracker
 {
 public:
-    static std::unique_ptr<BaseTracker> create(TrackerType tracker, const std::string &config_file)
-    {
-        switch (tracker)
-        {
-        case (TrackerType::SORT):
-        {
-            auto config = isFileAccessible(config_file) ? SortConfig::load(config_file) : SortConfig();
-            return std::make_unique<Sort>(config);
-        }
-        case (TrackerType::BOTSORT):
-        {
-            auto config = isFileAccessible(config_file) ? BotSortConfig::load(config_file) : BotSortConfig();
-            return std::make_unique<BotSort>(config);
-        }
-        default:
-            throw std::runtime_error("Unknown tracker type");
-        }
-    }
+    BaseTracker() = default;
+    virtual ~BaseTracker() = default;
+    virtual void update(std::vector<Detection> &detections) = 0;
+    const std::vector<std::unique_ptr<BaseTrack>> &getTracks() const { return tracks; }
+
+protected:
+    std::vector<std::unique_ptr<BaseTrack>> tracks{};
 };

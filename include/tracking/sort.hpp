@@ -1,7 +1,9 @@
 #pragma once
 
-#include <tracking/base.hpp>
+#include <fstream>
 #include <utils/json_utils.hpp>
+
+#include "tracker.hpp"
 
 struct SortTrack : BaseTrack
 {
@@ -28,16 +30,6 @@ struct SortConfig : public JsonConfig
         if (data.contains("match_thresh"))
             match_thresh = data["match_thresh"].get<float>();
     }
-
-    static SortConfig load(const std::string &filename)
-    {
-        std::ifstream file(filename);
-        auto data = nlohmann::json::parse(file);
-
-        SortConfig config;
-        config.loadFromJson(data["sort"]);
-        return config;
-    }
 };
 
 class Sort : public BaseTracker
@@ -45,11 +37,11 @@ class Sort : public BaseTracker
 public:
     Sort(const SortConfig &t_config) : config(t_config) {}
     const SortConfig &getConfig() const { return config; };
-    void process(Frame &frame) override;
+    void update(std::vector<Detection> &detections) override;
 
 private:
     const SortConfig config;
-    void assign(std::vector<std::unique_ptr<Detection>> &detections,
+    void assign(std::vector<Detection> &detections,
                 float match_thresh,
                 std::set<std::pair<size_t, size_t>> &matches,
                 std::set<size_t> &unmatched_detections,
