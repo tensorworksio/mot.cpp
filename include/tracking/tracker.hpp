@@ -5,9 +5,7 @@
 #include <stdexcept>
 #include <array>
 
-#include <types/frame.hpp>
 #include <types/detection.hpp>
-
 #include <kalman/kalman.hpp>
 
 constexpr float PRECISION = 1E6f;
