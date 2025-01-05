@@ -36,45 +36,50 @@ void getSequenceInfo(const fs::path &iniFilePath, po::variables_map &vm)
 int main(int argc, char **argv)
 {
 
-    po::options_description desc(" options");
-    desc.add_options()("help,h", "multi object tracker");
-    desc.add_options()("config,c", po::value<std::string>()->default_value(""), "Path to config.json");
-    desc.add_options()("path,p", po::value<std::string>()->required(), "Path to MOT sequence folder");
-    desc.add_options()("gt", po::bool_switch()->default_value(false), "Ground truth mode");
-    desc.add_options()("display", po::bool_switch()->default_value(false), "Display frames");
-    desc.add_options()("save", po::bool_switch()->default_value(false), "Save video");
+    po::options_description options("Program options");
+    options.add_options()("help,h", "multi object tracker");
+    options.add_options()("input,i", po::value<std::string>()->required(), "Path to MOT sequence folder");
+    options.add_options()("config,c", po::value<std::string>()->required(), "Path to tracker config.json");
+    options.add_options()("output,o", po::value<std::string>(), "Path to out.txt file");
+
+    options.add_options()("gt", po::bool_switch()->default_value(false), "Use ground-truth detections");
+    options.add_options()("display,d", po::bool_switch()->default_value(false), "Display images");
+    options.add_options()("video,v", po::value<std::string>(), "Path to out.mp4 file");
 
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::store(po::parse_command_line(argc, argv, options), vm);
 
     if (vm.count("help"))
     {
-        std::cout << desc << std::endl;
+        std::cout << options << std::endl;
         return 1;
     }
 
     po::notify(vm);
 
-    // Tracker config
+    // Input
+    fs::path path(vm["input"].as<std::string>());
+    fs::path seqInfoPath = path / "seqinfo.ini";
+    getSequenceInfo(seqInfoPath, vm);
+
+    // Load tracker
     std::string configPath = vm["config"].as<std::string>();
     auto tracker = TrackerFactory::create(configPath);
 
-    // Display
-    bool display = vm["display"].as<bool>();
-
-    // Ground truth
-    bool gt = vm["gt"].as<bool>();
-
-    // Video saver
-    bool saveVideo = vm["save"].as<bool>();
-
-    // MOT path
-    fs::path path(vm["path"].as<std::string>());
-    fs::path outPath = path / "out.txt";
+    // Output
+    fs::path outPath;
+    if (vm.count("output"))
+    {
+        outPath = fs::path(vm["output"].as<std::string>());
+    }
+    else
+    {
+        outPath = path / "out.txt";
+    }
 
     // Extract sequence info
-    fs::path seqInfoPath = path / "seqinfo.ini";
-    getSequenceInfo(seqInfoPath, vm);
+    double fps = vm["Sequence.frameRate"].as<double>();
+    cv::Size imageSize(vm["Sequence.imWidth"].as<int>(), vm["Sequence.imHeight"].as<int>());
 
     fs::path detPath = path / "det" / "det.txt";
     if (!fs::exists(detPath))
@@ -82,6 +87,8 @@ int main(int argc, char **argv)
         std::cerr << "Detection file does not exist: " << detPath.string() << std::endl;
         return 1;
     }
+
+    bool gt = vm["gt"].as<bool>();
     fs::path gtPath = path / "gt" / "gt.txt";
     if (gt && !fs::exists(gtPath))
     {
@@ -89,6 +96,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    bool display = vm["display"].as<bool>();
     fs::path imgPath = path / vm["Sequence.imDir"].as<std::string>();
     if (display && !fs::is_directory(imgPath))
     {
@@ -98,21 +106,20 @@ int main(int argc, char **argv)
 
     // Video writer
     cv::VideoWriter videoWriter;
-    fs::path videoPath = path / "output.mp4";
-    cv::Size imageSize(vm["Sequence.imWidth"].as<int>(), vm["Sequence.imHeight"].as<int>());
-    double fps = vm["Sequence.frameRate"].as<double>();
-
+    bool saveVideo = vm.count("video");
     if (saveVideo)
     {
+        fs::path videoPath(vm["video"].as<std::string>());
         videoWriter.open(videoPath.string(), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps, imageSize, true);
+
+        if (!videoWriter.isOpened())
+        {
+            std::cerr << "Could not open the output video file for write" << std::endl;
+            return 1;
+        }
     }
 
-    if (saveVideo && !videoWriter.isOpened())
-    {
-        std::cerr << "Could not open the output video file for write" << std::endl;
-        return 1;
-    }
-
+    // Main
     std::ifstream infile(gt ? gtPath.string() : detPath.string());
     std::ofstream outfile(outPath.string());
 
