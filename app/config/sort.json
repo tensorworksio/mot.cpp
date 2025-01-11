@@ -1,0 +1,12 @@
+{
+    "tracker": {
+        "name": "sort",
+        "kalman": {
+            "time_step": 1,
+            "process_noise_scale": 1.0,
+            "measurement_noise_scale": 1.0
+        },
+        "max_time_lost": 15,
+        "match_thresh": 0.3
+    }
+}

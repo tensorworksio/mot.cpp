@@ -47,14 +47,5 @@ mot_dep = declare_dependency(
   include_directories: inc_dir
 )
 
-# Copy data folder to build directory
-run_command('cp', '-r', 'app/data', meson.current_build_dir(), check: true)
-
-# Executable
-executable(
-  'mot', 
-  sources: [src_files, 'app/main.cpp'],
-  include_directories: inc_dir,
-  dependencies : dependencies,
-  install : true
-)
+# App
+subdir('app')
