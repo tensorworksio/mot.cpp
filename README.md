@@ -70,15 +70,11 @@ meson compile -C build
 ## Run
 ```shell
 cd build/app
-./mot -i data/MOT15/<split-name>/<seq-name> -c config/<config-name>.json --display --save
+./mot -i data/MOT15/train/<seq-name> -c config/<config-name>.json --display
 ```
 
 ## Evaluate
 ```shell
-python3 -m venv venv
-./venv/bin/pip3 install -r requirements
-```
-
-```shell
-./venv/bin/python3 -m motmetrics.apps.eval_motchallenge data/MOT15/<split-name> build/app/results/<config-name>
+chmod +x mot.sh
+./mot.sh --dataset data/MOT15 --split train --config app/config/<config-name>.json --save
 ```

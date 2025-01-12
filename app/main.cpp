@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     options.add_options()("help,h", "Multi Object Tracker");
     options.add_options()("input,i", po::value<std::string>()->required(), "Path to MOT sequence folder");
     options.add_options()("config,c", po::value<std::string>()->required(), "Path to tracker config.json");
-    options.add_options()("output,o", po::value<std::string>()->default_value("results"), "Path to results folder");
+    options.add_options()("output,o", po::value<std::string>(), "Path to results folder (if not provided, output to stdout)");
 
     options.add_options()("gt", po::bool_switch()->default_value(false), "Use ground-truth detections");
     options.add_options()("display,d", po::bool_switch()->default_value(false), "Display images");
@@ -89,25 +89,38 @@ int main(int argc, char **argv)
     auto tracker = TrackerFactory::create(configPath.string());
 
     // Output
-    fs::path outPath;
-    outPath = fs::path(vm["output"].as<std::string>()) / configName / (seqName + ".txt");
-    fs::create_directories(outPath.parent_path());
-
-    std::ofstream outFile(outPath.string());
-    if (!outFile.is_open())
+    std::ofstream outFile;
+    std::ostream &out = [&]() -> std::ostream &
     {
-        std::cerr << "Could not open output file: " << outPath.string() << std::endl;
+        if (vm.count("output"))
+        {
+            fs::path outPath = fs::path(vm["output"].as<std::string>()) / configName / (seqName + ".txt");
+            fs::create_directories(outPath.parent_path());
+            outFile.open(outPath.string());
+            if (!outFile.is_open())
+            {
+                std::cerr << "Could not open output file: " << outPath << std::endl;
+                exit(1);
+            }
+            return outFile;
+        }
+        return std::cout;
+    }();
+
+    // Video writer
+    bool saveVideo = vm["save"].as<bool>();
+    if (saveVideo && !vm.count("output"))
+    {
+        std::cerr << "Error: --save requires --output to be specified" << std::endl;
         return 1;
     }
 
-    // Video writer
     cv::VideoWriter videoWriter;
-    bool saveVideo = vm["save"].as<bool>();
     double fps = vm["Sequence.frameRate"].as<double>();
     cv::Size imageSize(vm["Sequence.imWidth"].as<int>(), vm["Sequence.imHeight"].as<int>());
     if (saveVideo)
     {
-        fs::path savePath = outPath.parent_path() / (seqName + ".mp4");
+        fs::path savePath = fs::path(vm["output"].as<std::string>()) / configName / (seqName + ".mp4");
         videoWriter.open(savePath.string(), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps, imageSize, true);
 
         if (!videoWriter.isOpened())
@@ -161,7 +174,7 @@ int main(int argc, char **argv)
             iss.str("");
             iss.clear();
 
-            std::cout << detection << std::endl;
+            out << detection << std::endl;
 
             if (detection.frame == frameIdx)
             {
@@ -176,12 +189,6 @@ int main(int argc, char **argv)
 
         // Process detections
         tracker->update(detections);
-
-        // Write detections to file
-        for (const auto &detection : detections)
-        {
-            outFile << detection << std::endl;
-        }
 
         // Visualize results
         for (const auto &det : detections)
