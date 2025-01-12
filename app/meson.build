@@ -2,7 +2,7 @@ app_src = files(
     'main.cpp'
 )
 
-# Copy data folder
+# Copy config folder
 run_command('cp', '-r', 'config', meson.current_build_dir(), check: true)
 
 # Create a symbolic link to the data folder

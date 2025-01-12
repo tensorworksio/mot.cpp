@@ -37,14 +37,14 @@ int main(int argc, char **argv)
 {
 
     po::options_description options("Program options");
-    options.add_options()("help,h", "multi object tracker");
+    options.add_options()("help,h", "Multi Object Tracker");
     options.add_options()("input,i", po::value<std::string>()->required(), "Path to MOT sequence folder");
     options.add_options()("config,c", po::value<std::string>()->required(), "Path to tracker config.json");
-    options.add_options()("output,o", po::value<std::string>(), "Path to out.txt file");
+    options.add_options()("output,o", po::value<std::string>()->default_value("results"), "Path to results folder");
 
     options.add_options()("gt", po::bool_switch()->default_value(false), "Use ground-truth detections");
     options.add_options()("display,d", po::bool_switch()->default_value(false), "Display images");
-    options.add_options()("video,v", po::value<std::string>(), "Path to out.mp4 file");
+    options.add_options()("save,s", po::bool_switch()->default_value(false), "Save video into output folder");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, options), vm);
@@ -58,59 +58,57 @@ int main(int argc, char **argv)
     po::notify(vm);
 
     // Input
-    fs::path path(vm["input"].as<std::string>());
-    fs::path seqInfoPath = path / "seqinfo.ini";
+    fs::path seqPath(vm["input"].as<std::string>());
+    std::string seqName = seqPath.stem().string();
+    fs::path seqInfoPath = seqPath / "seqinfo.ini";
     getSequenceInfo(seqInfoPath, vm);
 
-    // Load tracker
-    std::string configPath = vm["config"].as<std::string>();
-    auto tracker = TrackerFactory::create(configPath);
-
-    // Output
-    fs::path outPath;
-    if (vm.count("output"))
-    {
-        outPath = fs::path(vm["output"].as<std::string>());
-    }
-    else
-    {
-        outPath = path / "out.txt";
-    }
-
-    // Extract sequence info
-    double fps = vm["Sequence.frameRate"].as<double>();
-    cv::Size imageSize(vm["Sequence.imWidth"].as<int>(), vm["Sequence.imHeight"].as<int>());
-
-    fs::path detPath = path / "det" / "det.txt";
-    if (!fs::exists(detPath))
-    {
-        std::cerr << "Detection file does not exist: " << detPath.string() << std::endl;
-        return 1;
-    }
-
     bool gt = vm["gt"].as<bool>();
-    fs::path gtPath = path / "gt" / "gt.txt";
-    if (gt && !fs::exists(gtPath))
+    fs::path detPath = seqPath / "det" / "det.txt";
+    fs::path gtPath = seqPath / "gt" / "gt.txt";
+    fs::path inPath = gt ? gtPath : detPath;
+
+    std::ifstream inFile(gt ? gtPath.string() : detPath.string());
+    if (!inFile.is_open())
     {
-        std::cerr << "Ground truth file does not exist: " << gtPath.string() << std::endl;
+        std::cerr << "Could not open input file: " << inPath.string() << std::endl;
         return 1;
     }
 
     bool display = vm["display"].as<bool>();
-    fs::path imgPath = path / vm["Sequence.imDir"].as<std::string>();
+    fs::path imgPath = seqPath / vm["Sequence.imDir"].as<std::string>();
     if (display && !fs::is_directory(imgPath))
     {
         std::cerr << "Image directory does not exist: " << imgPath.string() << std::endl;
         return 1;
     }
 
+    // Load tracker from config
+    fs::path configPath = fs::path(vm["config"].as<std::string>());
+    std::string configName = configPath.stem().string();
+    auto tracker = TrackerFactory::create(configPath.string());
+
+    // Output
+    fs::path outPath;
+    outPath = fs::path(vm["output"].as<std::string>()) / configName / (seqName + ".txt");
+    fs::create_directories(outPath.parent_path());
+
+    std::ofstream outFile(outPath.string());
+    if (!outFile.is_open())
+    {
+        std::cerr << "Could not open output file: " << outPath.string() << std::endl;
+        return 1;
+    }
+
     // Video writer
     cv::VideoWriter videoWriter;
-    bool saveVideo = vm.count("video");
+    bool saveVideo = vm["save"].as<bool>();
+    double fps = vm["Sequence.frameRate"].as<double>();
+    cv::Size imageSize(vm["Sequence.imWidth"].as<int>(), vm["Sequence.imHeight"].as<int>());
     if (saveVideo)
     {
-        fs::path videoPath(vm["video"].as<std::string>());
-        videoWriter.open(videoPath.string(), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps, imageSize, true);
+        fs::path savePath = outPath.parent_path() / (seqName + ".mp4");
+        videoWriter.open(savePath.string(), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps, imageSize, true);
 
         if (!videoWriter.isOpened())
         {
@@ -120,9 +118,6 @@ int main(int argc, char **argv)
     }
 
     // Main
-    std::ifstream infile(gt ? gtPath.string() : detPath.string());
-    std::ofstream outfile(outPath.string());
-
     std::istringstream iss;
     std::ostringstream oss;
     std::string line;
@@ -156,7 +151,7 @@ int main(int argc, char **argv)
                 line = next_line;
                 next_line.clear();
             }
-            else if (!std::getline(infile, line))
+            else if (!std::getline(inFile, line))
             {
                 break;
             }
@@ -185,7 +180,7 @@ int main(int argc, char **argv)
         // Write detections to file
         for (const auto &detection : detections)
         {
-            outfile << detection << std::endl;
+            outFile << detection << std::endl;
         }
 
         // Visualize results
@@ -221,7 +216,7 @@ int main(int argc, char **argv)
     }
 
     cv::destroyAllWindows();
-    outfile.close();
+    outFile.close();
 
     return 0;
 }

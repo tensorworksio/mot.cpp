@@ -13,7 +13,7 @@ unzip MOT15.zip -d data && rm MOT15.zip
 ```
 
 ## Configure
-In `config` folder, add your tracker config:
+In `config` folder, add your custom tracker config:
 
 <details>
     <summary>SORT</summary>
@@ -68,25 +68,17 @@ meson compile -C build
 ```
 
 ## Run
-Let's run with 
 ```shell
 cd build/app
-./mot -i data/MOT15/train/ADL-Rundle-6 -c config/sort.json -o sort.txt -v sort.mp4 -d
+./mot -i data/MOT15/<split-name>/<seq-name> -c config/<config-name>.json --display --save
 ```
 
 ## Evaluate
 ```shell
-cd app
 python3 -m venv venv
 ./venv/bin/pip3 install -r requirements
 ```
 
 ```shell
-./venv/bin/python3 mot-eval.py -i ../build/app/sort.txt --gt ../data/MOT15/train/ADL-Rundle-6/gt/gt.txt
+./venv/bin/python3 -m motmetrics.apps.eval_motchallenge data/MOT15/<split-name> build/app/results/<config-name>
 ```
-
-## TODO:
-- mv venv in root
-- make the results compatible with ./venv/bin/python3 -m motmetrics.apps.eval_motchallenge app, aka
-./venv/bin/python3 -m motmetrics.apps.eval_motchallenge ./data/MOT20/train ./results/<config-name>/<seq-name>.txt
-- create PR for pymotmetrics inspired by MOT15
