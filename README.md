@@ -76,5 +76,5 @@ cd build/app
 ## Evaluate
 ```shell
 chmod +x mot.sh
-./mot.sh --dataset data/MOT15 --split train --config app/config/<config-name>.json --save
+./mot-eval.sh --dataset data/MOT15 --split train --config app/config/<config-name>.json --save
 ```

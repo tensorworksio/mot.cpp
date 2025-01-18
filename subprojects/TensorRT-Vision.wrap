@@ -1,0 +1,4 @@
+[wrap-git]
+directory = TensorRT-Vision
+url = https://github.com/tensorworksio/TensorRT-Vision.git
+revision = main

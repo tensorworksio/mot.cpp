@@ -9,5 +9,9 @@ data
 venv
 results
 
+*.pt
+*.onnx
+*.engine
+
 subprojects/*
 !subprojects/*.wrap

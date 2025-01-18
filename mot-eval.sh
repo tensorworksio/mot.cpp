@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Parse arguments with default output
+# Parse arguments with default
 output="results"
 save=false
 gt=false
@@ -30,23 +30,28 @@ while [[ $# -gt 0 ]]; do
             gt=true
             shift
             ;;
+        --reid|-r)
+            reid=true
+            shift
+            ;;
         *)
-            echo "Usage: $0 --dataset|-d <dataset> --split|-s <split> --config|-c <config> --output|-o <results> [--save] [--gt]"
+            echo "Usage: $0 --dataset|-d <dataset> --split|-s <split> --config|-c <config> [--output|-o <output>] [--save] [--gt] [--reid]"
             echo "  dataset: MOT15, MOT16, MOT17, MOT20"
             echo "  split: train or test"
             echo "  config: path to config file (e.g. config/sort.json)"
-            echo "  output: path to results folder (default: results)"
+            echo "  output: path to output folder (default: results)"
             echo "  save: enable saving of visualization"
             echo "  gt: use ground truth (only works with train split)"
+            echo "  reid: enable reid features"
             exit 1
             ;;
     esac
 done
 
 # Validate required arguments
-if [ -z "$dataset" ] || [ -z "$split" ] || [ -z "$config" ] || [ -z "$output" ]; then
+if [ -z "$dataset" ] || [ -z "$split" ] || [ -z "$config" ]; then
     echo "Error: Missing required arguments"
-    echo "Usage: $0 --dataset|-d <dataset> --split|-s <split> --config|-c <config> --output|-o <results> [--save] [--gt]"
+    echo "Usage: $0 --dataset|-d <dataset> --split|-s <split> --config|-c <config> [--output|-o <output>] [--save] [--gt] [--reid]"
     exit 1
 fi
 
@@ -56,11 +61,18 @@ if [ "$gt" = true ] && [ "$split" != "train" ]; then
     exit 1
 fi
 
+# Default output folder
+mkdir -p "$output"
 config_name=$(basename $config .json)
 
 # Compile project
 echo "Compiling project..."
-meson setup build && meson compile -C build
+if [ "$reid" = true ]; then
+    meson setup build -Denable_reid=true
+else
+    meson setup build -Denable_reid=false
+fi
+meson compile -C build
 
 # Setup Python environment
 if [ ! -d "venv" ]; then
@@ -77,18 +89,15 @@ if [ ! -d "$seq_dir" ]; then
 fi
 
 # Run tracker on each sequence
-for seq in $seq_dir/*/; do
+for seq in $seq_dir/*; do
     if [ -d "$seq" ]; then
         seq=${seq%/}
         echo "Processing sequence: $seq"
-        cmd="./build/app/mot -i \"$seq\" -c \"$config\" -o \"$output\""
-        if [ "$save" = true ]; then
-            cmd="$cmd --save"
-        fi
-        if [ "$gt" = true ]; then
-            cmd="$cmd --gt"
-        fi
-        eval $cmd
+        cmd="./build/app/mot --input $seq --config $config --output $output"
+        [ "$save" = true ] && cmd="$cmd --save"
+        [ "$gt" = true ] && cmd="$cmd --gt"
+        [ "$reid" = true ] && cmd="$cmd --reid"
+        $cmd
     fi
 done
 
