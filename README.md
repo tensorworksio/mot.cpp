@@ -8,14 +8,15 @@ Yet another C++ adaptation of SOTA multi-object tracking algorithm
 ## Dataset
 Get the MOT dataset of your choice from [MOT website](https://motchallenge.net/)
 ```bash
-wget https://motchallenge.net/data/MOT15.zip
-unzip MOT15.zip -d data && rm MOT15.zip
+cd data
+wget https://motchallenge.net/data/MOT20.zip
+unzip MOT20.zip && rm MOT20.zip
 ```
 
 ## Configure
 In `config` folder, add your custom tracker config:
 
-<details>
+<details open>
     <summary>SORT</summary>
 
 ```json
@@ -34,7 +35,7 @@ In `config` folder, add your custom tracker config:
 ```
 </details>
 
-<details open>
+<details>
     <summary>BoTSORT</summary>
 
 ```json
@@ -58,7 +59,7 @@ In `config` folder, add your custom tracker config:
     },
     "reid": {
         "engine": {
-            "model_path": "/path/to/model/osnet_x0_25.engine",
+            "model_path": "/path/to/model.engine",
             "batch_size": 1,
             "precision": 16
         }
@@ -70,19 +71,27 @@ In `config` folder, add your custom tracker config:
 ## Compile
 
 ```shell
-meson setup build -Denable_reid=false # enable reid or not
+# reid only supported with BoTSORT
+meson setup build -Denable_reid=false 
 meson compile -C build
 ```
 
 ## Run
 ```shell
 cd build/app
-./mot -i data/MOT15/train/<seq-name> -c config/<config-name>.json --display
+./mot -h
+
+# Example
+./mot -i data/MOT20/train/<seq-name> -c config/sort.json --display
 ```
 
 ## Evaluate
 ```shell
 chmod +x mot.sh
-./mot-eval.sh --dataset data/MOT15 --split train --config app/config/<config-name>.json --save
+./mot-eval.sh --dataset data/MOT20 --split train --config app/config/sort.json --save
+# experiment output available in runs folder
 ```
 
+## Run with your detector
+
+https://github.com/tensorworksio/TensorRT-Vision/tree/main/app/mot

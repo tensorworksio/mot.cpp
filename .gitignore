@@ -7,7 +7,7 @@ build
 builddir
 data
 venv
-results
+runs
 
 *.pt
 *.onnx

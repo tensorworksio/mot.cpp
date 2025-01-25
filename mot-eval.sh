@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # Parse arguments with default
-output="results"
+output="runs"
 save=false
 gt=false
+reid=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         --dataset|-d)
@@ -39,7 +40,7 @@ while [[ $# -gt 0 ]]; do
             echo "  dataset: MOT15, MOT16, MOT17, MOT20"
             echo "  split: train or test"
             echo "  config: path to config file (e.g. config/sort.json)"
-            echo "  output: path to output folder (default: results)"
+            echo "  output: path to output folder (default: runs)"
             echo "  save: enable saving of visualization"
             echo "  gt: use ground truth (only works with train split)"
             echo "  reid: enable reid features"
@@ -61,16 +62,10 @@ if [ "$gt" = true ] && [ "$split" != "train" ]; then
     exit 1
 fi
 
-# Default output folder
-mkdir -p "$output"
-config_name=$(basename $config .json)
-
 # Compile project
 echo "Compiling project..."
 if [ "$reid" = true ]; then
     meson setup build -Denable_reid=true
-else
-    meson setup build -Denable_reid=false
 fi
 meson compile -C build
 
@@ -88,12 +83,31 @@ if [ ! -d "$seq_dir" ]; then
     exit 1
 fi
 
+# Create experiment directory
+timestamp=$(date +%Y%m%d_%H%M%S)
+exp_dir="$output/exp_${timestamp}"
+output_dir="$exp_dir/output"
+
+mkdir -p "$output_dir"
+
+# Save experiment command
+cp "$config" "$exp_dir/"
+{
+    echo "Dataset: $dataset"
+    echo "Split: $split" 
+    echo "Config: $config"
+    echo "ReID enabled: $reid"
+    echo "GT enabled: $gt"
+    echo "Save video: $save"
+    echo "Command: $0 $@"
+} > "$exp_dir/cli.txt"
+
 # Run tracker on each sequence
 for seq in $seq_dir/*; do
     if [ -d "$seq" ]; then
         seq=${seq%/}
         echo "Processing sequence: $seq"
-        cmd="./build/app/mot --input $seq --config $config --output $output"
+        cmd="./build/app/mot --input $seq --config $config --output $output_dir"
         [ "$save" = true ] && cmd="$cmd --save"
         [ "$gt" = true ] && cmd="$cmd --gt"
         [ "$reid" = true ] && cmd="$cmd --reid"
@@ -104,7 +118,7 @@ done
 # Run evaluation only for train split
 if [ "$split" = "train" ]; then
     echo "Running evaluation..."
-    ./venv/bin/python3 -m motmetrics.apps.eval_motchallenge "$dataset/$split" "$output/$config_name" 2>&1 | tee "$output/$config_name.txt"
+    ./venv/bin/python3 -m motmetrics.apps.eval_motchallenge "$dataset/$split" "$output_dir" 2>&1 | tee "$exp_dir/metrics.txt"
 else
     echo "Skipping evaluation for test split (no ground truth available)"
 fi

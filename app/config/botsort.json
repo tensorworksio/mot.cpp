@@ -18,7 +18,7 @@
     },
     "reid": {
         "engine": {
-            "model_path": "/path/to/model/osnet_x0_25.engine",
+            "model_path": "/path/to/model.engine",
             "batch_size": 1,
             "precision": 16
         }

@@ -90,7 +90,6 @@ int main(int argc, char **argv)
 
     // Config
     fs::path configPath = fs::path(vm["config"].as<std::string>());
-    std::string configName = configPath.stem().string();
     auto tracker = TrackerFactory::create(configPath.string());
     if (!tracker)
     {
@@ -114,7 +113,7 @@ int main(int argc, char **argv)
     {
         if (vm.count("output"))
         {
-            fs::path outPath = fs::path(vm["output"].as<std::string>()) / configName / (seqName + ".txt");
+            fs::path outPath = fs::path(vm["output"].as<std::string>()) / (seqName + ".txt");
             fs::create_directories(outPath.parent_path());
             outFile.open(outPath.string());
             if (!outFile.is_open())
@@ -140,7 +139,7 @@ int main(int argc, char **argv)
     cv::Size imageSize(vm["Sequence.imWidth"].as<int>(), vm["Sequence.imHeight"].as<int>());
     if (saveVideo)
     {
-        fs::path savePath = fs::path(vm["output"].as<std::string>()) / configName / (seqName + ".mp4");
+        fs::path savePath = fs::path(vm["output"].as<std::string>()) / (seqName + ".mp4");
         videoWriter.open(savePath.string(), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps, imageSize, true);
 
         if (!videoWriter.isOpened())
