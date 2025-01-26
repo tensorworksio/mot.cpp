@@ -1,6 +1,8 @@
 # Multi Object Tracking
 Yet another C++ adaptation of SOTA multi-object tracking algorithm
-![Demo](results/MOT20-01.gif)
+<p align="center">
+    <img src="results/MOT20-01.gif" alt="Demo">
+</p>
 
 ## Supported Trackers
 - [SORT](https://github.com/abewley/sort) ![Support](https://img.shields.io/badge/support-yes-brightgreen.svg)

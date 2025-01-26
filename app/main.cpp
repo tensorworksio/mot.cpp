@@ -235,11 +235,11 @@ int main(int argc, char **argv)
         // Visualize results
         for (const auto &det : detections)
         {
-            cv::rectangle(frame, det.bbox, det.getColor(), 2);
+            cv::rectangle(frame, det.bbox, det.getTrackColor(), 2);
             std::string label = det.class_name + " ID:" + std::to_string(det.id);
             cv::putText(frame, label,
                         cv::Point(det.bbox.x, det.bbox.y - 5),
-                        cv::FONT_HERSHEY_SIMPLEX, 0.5, det.getColor(), 2);
+                        cv::FONT_HERSHEY_SIMPLEX, 0.5, det.getTrackColor(), 2);
         }
 
         // Write video
