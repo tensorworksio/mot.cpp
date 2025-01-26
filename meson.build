@@ -14,16 +14,6 @@ inc_dir = include_directories('include')
 vision_core_proj = subproject('vision-core')
 vision_core_dep = vision_core_proj.get_variable('vision_core_dep')
 
-# Optional TensorRT-Vision dependency for ReId
-engine_dep = []
-if get_option('enable_reid')
-  tensorrt_vision_proj = subproject('TensorRT-Vision',
-    default_options: ['build_apps=[]']  # Prevent circular dependency
-  )
-  engine_dep = [tensorrt_vision_proj.get_variable('engine_dep')]
-  add_project_arguments('-DENABLE_REID', language : 'cpp')
-endif
-
 # 3rd party
 spdlog_dep = dependency('spdlog')
 json_dep = dependency('nlohmann_json')
@@ -32,7 +22,11 @@ boost_dep = dependency('boost', modules : ['filesystem', 'program_options', 'jso
 opencv_dep = dependency('opencv4', modules : ['core', 'highgui', 'imgproc', 'imgcodecs', 'video', 'videoio'])
 
 dependencies = [vision_core_dep, spdlog_dep, json_dep, dlib_dep, boost_dep, opencv_dep]
-dependencies += engine_dep
+
+# Add ReID compile definition if enabled
+if get_option('enable_reid')
+  add_project_arguments('-DENABLE_REID', language : 'cpp')
+endif
 
 # Source files
 src_files = files(
@@ -55,7 +49,8 @@ mot_lib =library(
 # Export Dependencies
 mot_dep = declare_dependency(
   link_with: mot_lib,
-  include_directories: inc_dir
+  include_directories: inc_dir,
+  dependencies: dependencies
 )
 
 # App

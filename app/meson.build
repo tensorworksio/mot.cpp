@@ -1,3 +1,14 @@
+dependencies = [mot_dep]
+
+# Add TensorRT-Vision dependency for ReId 
+if get_option('enable_reid')
+  tensorrt_vision_proj = subproject('TensorRT-Vision',
+    default_options: ['build_apps=[]']  # Prevent circular dependency
+  )
+  engine_dep = [tensorrt_vision_proj.get_variable('engine_dep')]
+  dependencies += engine_dep
+endif
+
 app_src = files(
     'main.cpp'
 )
