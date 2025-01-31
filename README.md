@@ -59,13 +59,6 @@ In `config` folder, add your custom tracker config:
         "unconfirmed_match_thresh": 0.2,
         "proximity_thresh": 0.5,
         "appearance_thresh": 0.9
-    },
-    "reid": {
-        "engine": {
-            "model_path": "/path/to/model.engine",
-            "batch_size": 1,
-            "precision": 16
-        }
     }
 }
 ```
@@ -74,8 +67,7 @@ In `config` folder, add your custom tracker config:
 ## Compile
 
 ```shell
-# reid only supported with BoTSORT
-meson setup build -Denable_reid=false 
+meson setup build
 meson compile -C build
 ```
 
@@ -95,6 +87,5 @@ chmod +x mot.sh
 # experiment output available in runs folder
 ```
 
-## Run with your detector
-
+## Run with your detector / reid model
 https://github.com/tensorworksio/TensorRT-Vision/tree/main/app/mot

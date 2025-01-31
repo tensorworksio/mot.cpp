@@ -15,12 +15,5 @@
         "unconfirmed_match_thresh": 0.2,
         "proximity_thresh": 0.5,
         "appearance_thresh": 0.9
-    },
-    "reid": {
-        "engine": {
-            "model_path": "/path/to/model.engine",
-            "batch_size": 1,
-            "precision": 16
-        }
     }
 }

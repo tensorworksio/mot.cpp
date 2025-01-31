@@ -23,11 +23,6 @@ opencv_dep = dependency('opencv4', modules : ['core', 'highgui', 'imgproc', 'img
 
 dependencies = [vision_core_dep, spdlog_dep, json_dep, dlib_dep, boost_dep, opencv_dep]
 
-# Add ReID compile definition if enabled
-if get_option('enable_reid')
-  add_project_arguments('-DENABLE_REID', language : 'cpp')
-endif
-
 # Source files
 src_files = files(
   'src/kalman/xywh.cpp',

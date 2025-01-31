@@ -4,7 +4,6 @@
 output="runs"
 save=false
 gt=false
-reid=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         --dataset|-d)
@@ -31,19 +30,14 @@ while [[ $# -gt 0 ]]; do
             gt=true
             shift
             ;;
-        --reid|-r)
-            reid=true
-            shift
-            ;;
         *)
-            echo "Usage: $0 --dataset|-d <dataset> --split|-s <split> --config|-c <config> [--output|-o <output>] [--save] [--gt] [--reid]"
+            echo "Usage: $0 --dataset|-d <dataset> --split|-s <split> --config|-c <config> [--output|-o <output>] [--save] [--gt]"
             echo "  dataset: MOT15, MOT16, MOT17, MOT20"
             echo "  split: train or test"
             echo "  config: path to config file (e.g. config/sort.json)"
             echo "  output: path to output folder (default: runs)"
             echo "  save: enable saving of visualization"
             echo "  gt: use ground truth (only works with train split)"
-            echo "  reid: enable reid features"
             exit 1
             ;;
     esac
@@ -52,7 +46,7 @@ done
 # Validate required arguments
 if [ -z "$dataset" ] || [ -z "$split" ] || [ -z "$config" ]; then
     echo "Error: Missing required arguments"
-    echo "Usage: $0 --dataset|-d <dataset> --split|-s <split> --config|-c <config> [--output|-o <output>] [--save] [--gt] [--reid]"
+    echo "Usage: $0 --dataset|-d <dataset> --split|-s <split> --config|-c <config> [--output|-o <output>] [--save] [--gt]"
     exit 1
 fi
 
@@ -63,10 +57,7 @@ if [ "$gt" = true ] && [ "$split" != "train" ]; then
 fi
 
 # Compile project
-echo "Compiling project..."
-if [ "$reid" = true ]; then
-    meson setup build -Denable_reid=true
-fi
+meson setup build 
 meson compile -C build
 
 # Setup Python environment
@@ -96,7 +87,6 @@ cp "$config" "$exp_dir/"
     echo "Dataset: $dataset"
     echo "Split: $split" 
     echo "Config: $config"
-    echo "ReID enabled: $reid"
     echo "GT enabled: $gt"
     echo "Save video: $save"
     echo "Command: $0 $@"
@@ -110,7 +100,6 @@ for seq in $seq_dir/*; do
         cmd="./build/app/mot --input $seq --config $config --output $output_dir"
         [ "$save" = true ] && cmd="$cmd --save"
         [ "$gt" = true ] && cmd="$cmd --gt"
-        [ "$reid" = true ] && cmd="$cmd --reid"
         $cmd
     fi
 done

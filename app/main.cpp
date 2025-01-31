@@ -8,10 +8,6 @@
 
 #include <tracking/factory.hpp>
 
-#ifdef ENABLE_REID
-#include <models/reid/reid.hpp>
-#endif
-
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
@@ -46,7 +42,6 @@ int main(int argc, char **argv)
     options.add_options()("config,c", po::value<std::string>()->required(), "Path to tracker config.json");
     options.add_options()("output,o", po::value<std::string>(), "Path to results folder (if not provided, output to stdout)");
 
-    options.add_options()("reid,r", po::bool_switch()->default_value(false), "Enable reid, requires reid section in config.json");
     options.add_options()("gt", po::bool_switch()->default_value(false), "Use ground-truth detections");
     options.add_options()("display,d", po::bool_switch()->default_value(false), "Display images");
     options.add_options()("save,s", po::bool_switch()->default_value(false), "Save video into output folder");
@@ -96,16 +91,6 @@ int main(int argc, char **argv)
         std::cerr << "Failed to create tracker" << std::endl;
         return 1;
     }
-
-#ifdef ENABLE_REID
-    bool reid = vm["reid"].as<bool>();
-    std::unique_ptr<ReId> reidModel = nullptr;
-    if (reid)
-    {
-        auto reidConfig = ReIdConfig::load(configPath.string(), "reid");
-        reidModel = std::make_unique<ReId>(reidConfig);
-    }
-#endif
 
     // Output
     std::ofstream outFile;
@@ -202,29 +187,6 @@ int main(int argc, char **argv)
             }
         }
 
-// Extract features from detections
-#ifdef ENABLE_REID
-        if (reid)
-        {
-            for (auto &det : detections)
-            {
-                // Clamp bbox coordinates to frame boundaries
-                cv::Rect safeBbox = det.bbox;
-                safeBbox.x = std::max(0, std::min(frame.cols - 1, safeBbox.x));
-                safeBbox.y = std::max(0, std::min(frame.rows - 1, safeBbox.y));
-                safeBbox.width = std::min(frame.cols - safeBbox.x, safeBbox.width);
-                safeBbox.height = std::min(frame.rows - safeBbox.y, safeBbox.height);
-
-                // Only process if bbox has valid dimensions
-                if (safeBbox.width > 0 && safeBbox.height > 0)
-                {
-                    cv::Mat roi = frame(safeBbox);
-                    det.features = reidModel->process(roi);
-                }
-            }
-        }
-#endif
-
         // Process detections
         tracker->update(detections);
         for (const auto &det : detections)
@@ -252,10 +214,10 @@ int main(int argc, char **argv)
         if (display)
         {
             cv::imshow("Frame", frame);
-        }
-        if (cv::waitKey(1000 / fps) == 27)
-        {
-            break;
+            if (cv::waitKey(1000 / fps) == 27)
+            {
+                break;
+            }
         }
     }
 
