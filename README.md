@@ -82,10 +82,10 @@ cd build/app
 
 ## Evaluate
 ```shell
-chmod +x mot.sh
+chmod +x mot-eval.sh
 ./mot-eval.sh --dataset data/MOT20 --split train --config app/config/sort.json --save
 # experiment output available in runs folder
 ```
 
-## Run with your detector / reid model
+## Run with your detector
 https://github.com/tensorworksio/TensorRT-Vision/tree/main/app/mot
