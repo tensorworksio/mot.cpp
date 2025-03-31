@@ -159,7 +159,7 @@ void BotSort::update(std::vector<Detection> &detections)
         auto *det = high_score_detections[det_idx];
         auto *track = active_tracks[track_idx];
         track->update(*det);
-        det->id = track->id;
+        det->track_id = track->id;
     }
 
     for (const auto &track_idx : first_unmatched_tracks)
@@ -194,7 +194,7 @@ void BotSort::update(std::vector<Detection> &detections)
         auto *det = low_score_detections[det_idx];
         auto *track = unmatched_tracks[track_idx];
         track->update(*det);
-        det->id = track->id;
+        det->track_id = track->id;
     }
 
     for (const auto &track_idx : second_unmatched_tracks)
@@ -229,7 +229,7 @@ void BotSort::update(std::vector<Detection> &detections)
         auto *det = unconfirmed_detections[det_idx];
         auto *track = unconfirmed_tracks[track_idx];
         track->update(*det);
-        det->id = track->id;
+        det->track_id = track->id;
     }
 
     for (const auto &track_idx : unconfirmed_unmatched_tracks)

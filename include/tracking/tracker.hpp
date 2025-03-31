@@ -21,7 +21,7 @@ enum class TrackState : int
 
 struct BaseTrack
 {
-    static size_t count;
+    static int64_t count;
     int id = 0;
     size_t age = 0;
     size_t time_since_update = 0;

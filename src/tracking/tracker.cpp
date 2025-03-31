@@ -1,6 +1,6 @@
 #include <tracking/tracker.hpp>
 
-size_t BaseTrack::count = 0;
+int64_t BaseTrack::count = 0;
 
 BaseTrack::BaseTrack(std::shared_ptr<BaseKalmanFilter> kalman_filter)
     : kf(kalman_filter)

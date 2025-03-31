@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 
+#include <types/frame.hpp>
 #include <opencv2/opencv.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -140,8 +141,8 @@ int main(int argc, char **argv)
     std::string line;
     std::string next_line;
 
+    Frame frame;
     Detection detection;
-    cv::Mat frame;
 
     std::vector<fs::path> imageFiles;
     for (const auto &entry : fs::directory_iterator(imgPath))
@@ -151,13 +152,12 @@ int main(int argc, char **argv)
 
     std::sort(imageFiles.begin(), imageFiles.end());
 
-    int frameIdx = 0;
     std::vector<Detection> detections;
 
     for (const auto &path : imageFiles)
     {
-        frameIdx++;
-        frame = cv::imread(path.string());
+
+        Frame frame(cv::imread(path.string()));
         detections.clear();
 
         // Read detections from file
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
             iss.str(line);
             iss >> detection;
 
-            if (detection.frame == frameIdx)
+            if (detection.frame_id == frame.getId())
             {
                 detections.push_back(detection);
             }
@@ -195,25 +195,18 @@ int main(int argc, char **argv)
         }
 
         // Visualize results
-        for (const auto &det : detections)
-        {
-            cv::rectangle(frame, det.bbox, det.getTrackColor(), 2);
-            std::string label = det.class_name + " ID:" + std::to_string(det.id);
-            cv::putText(frame, label,
-                        cv::Point(det.bbox.x, det.bbox.y - 5),
-                        cv::FONT_HERSHEY_SIMPLEX, 0.5, det.getTrackColor(), 2);
-        }
+        cv::Mat output = frame.draw(detections, true, true);
 
         // Write video
         if (saveVideo)
         {
-            videoWriter.write(frame);
+            videoWriter.write(output);
         }
 
         // Display
         if (display)
         {
-            cv::imshow("Frame", frame);
+            cv::imshow("Multi Object Tracking", output);
             if (cv::waitKey(1000 / fps) == 27)
             {
                 break;

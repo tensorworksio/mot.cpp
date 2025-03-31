@@ -88,7 +88,7 @@ void Sort::update(std::vector<Detection> &detections)
     for (const auto &[det_idx, track_idx] : matches)
     {
         tracks[track_idx]->update(detections[det_idx]);
-        detections[det_idx].id = tracks[track_idx]->id;
+        detections[det_idx].track_id = tracks[track_idx]->id;
     }
 
     // Create new tracks
