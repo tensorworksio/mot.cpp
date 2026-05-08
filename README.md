@@ -64,11 +64,12 @@ In `config` folder, add your custom tracker config:
 ```
 </details>
 
-## Compile
+## Compile and Test
 
 ```shell
 meson setup build
 meson compile -C build
+meson test -C build
 ```
 
 ## Run
