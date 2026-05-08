@@ -13,7 +13,7 @@ run_command('ln', '-s', join_paths(meson.source_root(), 'data'), join_paths(meso
 executable('mot',
     sources: app_src,
     include_directories: inc_dir,
-    dependencies: dependencies,
+    dependencies: dependencies + [argparse_dep],
     link_with: mot_lib,
     install: true
 )
