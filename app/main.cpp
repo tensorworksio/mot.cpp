@@ -1,110 +1,130 @@
-#include <iostream>
+#include <filesystem>
 #include <fstream>
+#include <iostream>
+#include <print>
+#include <sstream>
 #include <string>
 
-#include <types/frame.hpp>
+#include <argparse/argparse.hpp>
 #include <opencv2/opencv.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
+#include <types/frame.hpp>
 
 #include <tracking/factory.hpp>
 
-namespace fs = boost::filesystem;
-namespace po = boost::program_options;
+namespace fs = std::filesystem;
 
-void getSequenceInfo(const fs::path &iniFilePath, po::variables_map &vm)
+struct SequenceInfo
 {
-    po::options_description config("Sequence info");
-    config.add_options()("Sequence.name", po::value<std::string>(), "Sequence name");
-    config.add_options()("Sequence.imDir", po::value<std::string>(), "Image directory");
-    config.add_options()("Sequence.frameRate", po::value<double>(), "Frame rate");
-    config.add_options()("Sequence.seqLength", po::value<int>(), "Sequence length");
-    config.add_options()("Sequence.imWidth", po::value<int>(), "Image width");
-    config.add_options()("Sequence.imHeight", po::value<int>(), "Image height");
-    config.add_options()("Sequence.imExt", po::value<std::string>(), "Image extension");
+    std::string imDir;
+    double frameRate{};
+    int imWidth{};
+    int imHeight{};
+};
 
-    std::ifstream iniFile(iniFilePath.string());
-    if (!iniFile)
+SequenceInfo parseSequenceInfo(const fs::path &iniPath)
+{
+    std::ifstream file(iniPath);
+    if (!file)
     {
-        std::cerr << "INI file not found: " << iniFilePath.string() << std::endl;
-        return;
+        std::println(std::cerr, "INI file not found: {}", iniPath.string());
+        return {};
     }
 
-    po::store(po::parse_config_file(iniFile, config), vm);
-    po::notify(vm);
+    SequenceInfo info;
+    std::string line;
+    while (std::getline(file, line))
+    {
+        if (line.empty() || line[0] == '[' || line[0] == ';')
+            continue;
+
+        auto eq = line.find('=');
+        if (eq == std::string::npos)
+            continue;
+
+        std::string key = line.substr(0, eq);
+        std::string val = line.substr(eq + 1);
+
+        auto trim = [](std::string &s) {
+            s.erase(0, s.find_first_not_of(" \t\r\n"));
+            s.erase(s.find_last_not_of(" \t\r\n") + 1);
+        };
+        trim(key);
+        trim(val);
+
+        if      (key == "imDir")     info.imDir = val;
+        else if (key == "frameRate") info.frameRate = std::stod(val);
+        else if (key == "imWidth")   info.imWidth = std::stoi(val);
+        else if (key == "imHeight")  info.imHeight = std::stoi(val);
+    }
+    return info;
 }
 
 int main(int argc, char **argv)
 {
+    argparse::ArgumentParser parser("mot");
+    parser.add_description("Multi Object Tracker");
+    parser.add_argument("-i", "--input").required().help("Path to MOT sequence folder");
+    parser.add_argument("-c", "--config").required().help("Path to tracker config.json");
+    parser.add_argument("-o", "--output").help("Path to results folder (if not provided, output to stdout)");
+    parser.add_argument("--gt").flag().help("Use ground-truth detections");
+    parser.add_argument("-d", "--display").flag().help("Display images");
+    parser.add_argument("-s", "--save").flag().help("Save video into output folder");
 
-    po::options_description options("Program options");
-    options.add_options()("help,h", "Multi Object Tracker");
-    options.add_options()("input,i", po::value<std::string>()->required(), "Path to MOT sequence folder");
-    options.add_options()("config,c", po::value<std::string>()->required(), "Path to tracker config.json");
-    options.add_options()("output,o", po::value<std::string>(), "Path to results folder (if not provided, output to stdout)");
-
-    options.add_options()("gt", po::bool_switch()->default_value(false), "Use ground-truth detections");
-    options.add_options()("display,d", po::bool_switch()->default_value(false), "Display images");
-    options.add_options()("save,s", po::bool_switch()->default_value(false), "Save video into output folder");
-
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, options), vm);
-
-    if (vm.count("help"))
+    try
     {
-        std::cout << options << std::endl;
+        parser.parse_args(argc, argv);
+    }
+    catch (const std::exception &e)
+    {
+        std::println(std::cerr, "{}", e.what());
+        std::cerr << parser;
         return 1;
     }
-
-    po::notify(vm);
 
     // Input
-    fs::path seqPath(vm["input"].as<std::string>());
+    fs::path seqPath(parser.get("--input"));
     std::string seqName = seqPath.stem().string();
-    fs::path seqInfoPath = seqPath / "seqinfo.ini";
-    getSequenceInfo(seqInfoPath, vm);
+    auto seqInfo = parseSequenceInfo(seqPath / "seqinfo.ini");
 
-    bool gt = vm["gt"].as<bool>();
-    fs::path detPath = seqPath / "det" / "det.txt";
-    fs::path gtPath = seqPath / "gt" / "gt.txt";
-    fs::path inPath = gt ? gtPath : detPath;
+    bool gt = parser.get<bool>("--gt");
+    fs::path inPath = seqPath / (gt ? "gt/gt.txt" : "det/det.txt");
 
-    std::ifstream inFile(gt ? gtPath.string() : detPath.string());
+    std::ifstream inFile(inPath);
     if (!inFile.is_open())
     {
-        std::cerr << "Could not open input file: " << inPath.string() << std::endl;
+        std::println(std::cerr, "Could not open input file: {}", inPath.string());
         return 1;
     }
 
-    bool display = vm["display"].as<bool>();
-    fs::path imgPath = seqPath / vm["Sequence.imDir"].as<std::string>();
+    bool display = parser.get<bool>("--display");
+    fs::path imgPath = seqPath / seqInfo.imDir;
     if (display && !fs::is_directory(imgPath))
     {
-        std::cerr << "Image directory does not exist: " << imgPath.string() << std::endl;
+        std::println(std::cerr, "Image directory does not exist: {}", imgPath.string());
         return 1;
     }
 
     // Config
-    fs::path configPath = fs::path(vm["config"].as<std::string>());
-    auto tracker = TrackerFactory::create(configPath.string());
+    auto tracker = TrackerFactory::create(parser.get("--config"));
     if (!tracker)
     {
-        std::cerr << "Failed to create tracker" << std::endl;
+        std::println(std::cerr, "Failed to create tracker");
         return 1;
     }
 
     // Output
+    auto outputDir = parser.present<std::string>("--output");
     std::ofstream outFile;
     std::ostream &out = [&]() -> std::ostream &
     {
-        if (vm.count("output"))
+        if (outputDir)
         {
-            fs::path outPath = fs::path(vm["output"].as<std::string>()) / (seqName + ".txt");
+            fs::path outPath = fs::path(*outputDir) / (seqName + ".txt");
             fs::create_directories(outPath.parent_path());
-            outFile.open(outPath.string());
+            outFile.open(outPath);
             if (!outFile.is_open())
             {
-                std::cerr << "Could not open output file: " << outPath << std::endl;
+                std::println(std::cerr, "Could not open output file: {}", outPath.string());
                 exit(1);
             }
             return outFile;
@@ -113,50 +133,43 @@ int main(int argc, char **argv)
     }();
 
     // Video writer
-    bool saveVideo = vm["save"].as<bool>();
-    if (saveVideo && !vm.count("output"))
+    bool saveVideo = parser.get<bool>("--save");
+    if (saveVideo && !outputDir)
     {
-        std::cerr << "Error: --save requires --output to be specified" << std::endl;
+        std::println(std::cerr, "Error: --save requires --output to be specified");
         return 1;
     }
 
     cv::VideoWriter videoWriter;
-    double fps = vm["Sequence.frameRate"].as<double>();
-    cv::Size imageSize(vm["Sequence.imWidth"].as<int>(), vm["Sequence.imHeight"].as<int>());
+    cv::Size imageSize(seqInfo.imWidth, seqInfo.imHeight);
     if (saveVideo)
     {
-        fs::path savePath = fs::path(vm["output"].as<std::string>()) / (seqName + ".mp4");
-        videoWriter.open(savePath.string(), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps, imageSize, true);
+        fs::path savePath = fs::path(*outputDir) / (seqName + ".mp4");
+        videoWriter.open(savePath.string(), cv::VideoWriter::fourcc('m', 'p', '4', 'v'), seqInfo.frameRate, imageSize, true);
 
         if (!videoWriter.isOpened())
         {
-            std::cerr << "Could not open the output video file for write" << std::endl;
+            std::println(std::cerr, "Could not open the output video file for write");
             return 1;
         }
     }
 
     // Main
     std::istringstream iss;
-    std::ostringstream oss;
     std::string line;
     std::string next_line;
 
-    Frame frame;
     Detection detection;
 
     std::vector<fs::path> imageFiles;
     for (const auto &entry : fs::directory_iterator(imgPath))
-    {
         imageFiles.push_back(entry.path());
-    }
-
     std::sort(imageFiles.begin(), imageFiles.end());
 
     std::vector<Detection> detections;
 
     for (const auto &path : imageFiles)
     {
-
         Frame frame(cv::imread(path.string()));
         detections.clear();
 
@@ -177,9 +190,7 @@ int main(int argc, char **argv)
             iss >> detection;
 
             if (detection.frame_id == frame.getId())
-            {
                 detections.push_back(detection);
-            }
             else
             {
                 next_line = line;
@@ -190,39 +201,27 @@ int main(int argc, char **argv)
         // Process detections
         tracker->update(detections);
         for (const auto &det : detections)
-        {
-            out << det << std::endl;
-        }
+            out << det << "\n";
 
         // Visualize results
         cv::Mat output = frame.draw(detections, true, true);
 
-        // Write video
         if (saveVideo)
-        {
             videoWriter.write(output);
-        }
 
-        // Display
         if (display)
         {
             cv::imshow("Multi Object Tracking", output);
-            if (cv::waitKey(1000 / fps) == 27)
-            {
+            if (cv::waitKey(static_cast<int>(1000.0 / seqInfo.frameRate)) == 27)
                 break;
-            }
         }
     }
 
     if (videoWriter.isOpened())
-    {
         videoWriter.release();
-    }
 
     if (outFile.is_open())
-    {
         outFile.close();
-    }
 
     cv::destroyAllWindows();
 
