@@ -52,3 +52,6 @@ mot_dep = declare_dependency(
 
 # App
 subdir('app')
+
+# Tests
+subdir('tests')
