@@ -1,8 +1,5 @@
 #pragma once
 
-#include <fstream>
-#include <utils/json_utils.hpp>
-
 #include "tracker.hpp"
 
 struct BotSortTrack : BaseTrack
@@ -16,8 +13,10 @@ struct BotSortTrack : BaseTrack
     void update(Detection &det) override;
 };
 
-struct BotSortConfig : public JsonConfig
+struct BotSortConfig
 {
+    using Tag = rfl::Literal<"botsort">;
+
     KalmanConfig kalman{};
 
     size_t max_time_lost = 15;
@@ -32,32 +31,6 @@ struct BotSortConfig : public JsonConfig
 
     float proximity_thresh = 0.5f;
     float appearance_thresh = 0.9f;
-
-    std::shared_ptr<const JsonConfig> clone() const override { return std::make_shared<BotSortConfig>(*this); }
-
-    void loadFromJson(const nlohmann::json &data) override
-    {
-        if (data.contains("kalman"))
-            kalman.loadFromJson(data["kalman"]);
-        if (data.contains("max_time_lost"))
-            max_time_lost = data["max_time_lost"].get<size_t>();
-        if (data.contains("track_high_thresh"))
-            track_high_thresh = data["track_high_thresh"].get<float>();
-        if (data.contains("track_low_thresh"))
-            track_low_thresh = data["track_low_thresh"].get<float>();
-        if (data.contains("new_track_thresh"))
-            new_track_thresh = data["new_track_thresh"].get<float>();
-        if (data.contains("first_match_thresh"))
-            first_match_thresh = data["first_match_thresh"].get<float>();
-        if (data.contains("second_match_thresh"))
-            second_match_thresh = data["second_match_thresh"].get<float>();
-        if (data.contains("unconfirmed_match_thresh"))
-            unconfirmed_match_thresh = data["unconfirmed_match_thresh"].get<float>();
-        if (data.contains("proximity_thresh"))
-            proximity_thresh = data["proximity_thresh"].get<float>();
-        if (data.contains("appearance_thresh"))
-            appearance_thresh = data["appearance_thresh"].get<float>();
-    }
 };
 
 class BotSort : public BaseTracker

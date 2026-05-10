@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fstream>
-#include <nlohmann/json.hpp>
+#include <rfl/json.hpp>
 
 #include "tracker.hpp"
 #include "sort.hpp"
@@ -50,26 +50,21 @@ class TrackerFactory
 public:
     static std::unique_ptr<BaseTracker> create(const std::string &config_file)
     {
-        std::ifstream file(config_file);
-        auto data = nlohmann::json::parse(file);
-        TrackerType tracker_type = getTrackerType(data["tracker"]["name"]);
+        struct TrackerFile {
+            rfl::TaggedUnion<"name", SortConfig, BotSortConfig> tracker;
+        };
 
-        switch (tracker_type)
-        {
-        case TrackerType::SORT:
-        {
-            auto config = SortConfig();
-            config.loadFromJson(data["tracker"]);
-            return std::make_unique<Sort>(config);
-        }
-        case TrackerType::BOTSORT:
-        {
-            auto config = BotSortConfig();
-            config.loadFromJson(data["tracker"]);
-            return std::make_unique<BotSort>(config);
-        }
-        default:
-            throw std::runtime_error("Unknown tracker type");
-        }
+        std::ifstream file(config_file);
+        auto result = rfl::json::read<TrackerFile, rfl::DefaultIfMissing>(file);
+        if (!result.has_value())
+            throw std::runtime_error(result.error().what());
+
+        return result.value().tracker.visit([](auto &&config) -> std::unique_ptr<BaseTracker> {
+            using T = std::decay_t<decltype(config)>;
+            if constexpr (std::is_same_v<T, SortConfig>)
+                return std::make_unique<Sort>(config);
+            else if constexpr (std::is_same_v<T, BotSortConfig>)
+                return std::make_unique<BotSort>(config);
+        });
     }
 };

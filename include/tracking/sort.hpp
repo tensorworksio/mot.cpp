@@ -1,8 +1,5 @@
 #pragma once
 
-#include <fstream>
-#include <utils/json_utils.hpp>
-
 #include "tracker.hpp"
 
 struct SortTrack : BaseTrack
@@ -12,24 +9,14 @@ struct SortTrack : BaseTrack
     void update(Detection &det) override;
 };
 
-struct SortConfig : public JsonConfig
+struct SortConfig
 {
+    using Tag = rfl::Literal<"sort">;
+
     KalmanConfig kalman{};
 
     size_t max_time_lost = 15;
     float match_thresh = 0.3f;
-
-    std::shared_ptr<const JsonConfig> clone() const override { return std::make_shared<SortConfig>(*this); }
-
-    void loadFromJson(const nlohmann::json &data) override
-    {
-        if (data.contains("kalman"))
-            kalman.loadFromJson(data["kalman"]);
-        if (data.contains("max_time_lost"))
-            max_time_lost = data["max_time_lost"].get<size_t>();
-        if (data.contains("match_thresh"))
-            match_thresh = data["match_thresh"].get<float>();
-    }
 };
 
 class Sort : public BaseTracker

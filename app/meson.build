@@ -9,11 +9,13 @@ run_command('cp', '-r', 'config', meson.current_build_dir(), check: true)
 run_command('rm', '-f', join_paths(meson.current_build_dir(), 'data'), check: true)
 run_command('ln', '-s', join_paths(meson.source_root(), 'data'), join_paths(meson.current_build_dir(), 'data'), check: true)
 
+argparse_dep = dependency('argparse', required: true)
+
 # Excutable
 executable('mot',
     sources: app_src,
     include_directories: inc_dir,
-    dependencies: dependencies + [argparse_dep],
+    dependencies: [mot_dep, argparse_dep],
     link_with: mot_lib,
     install: true
 )

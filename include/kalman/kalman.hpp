@@ -1,25 +1,12 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
-#include <utils/json_utils.hpp>
 
-struct KalmanConfig : public JsonConfig
+struct KalmanConfig
 {
     int time_step = 1;
     float process_noise_scale = 1.f;
     float measurement_noise_scale = 1.f;
-
-    std::shared_ptr<const JsonConfig> clone() const override { return std::make_shared<KalmanConfig>(*this); }
-
-    void loadFromJson(const nlohmann::json &data) override
-    {
-        if (data.contains("time_step"))
-            time_step = data["time_step"].get<int>();
-        if (data.contains("process_noise_scale"))
-            process_noise_scale = data["process_noise_scale"].get<float>();
-        if (data.contains("measurement_noise_scale"))
-            measurement_noise_scale = data["measurement_noise_scale"].get<float>();
-    }
 };
 
 class BaseKalmanFilter
