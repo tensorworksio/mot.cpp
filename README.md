@@ -19,6 +19,42 @@ unzip MOT20.zip && rm MOT20.zip
 ## Configure
 In `config` folder, add your custom tracker config
 
+<details open>
+    <summary>SORT</summary>
+
+```toml
+tracker = "sort"
+max_time_lost = 15
+match_thresh = 0.3
+
+[kalman]
+time_step = 1
+process_noise_scale = 1.0
+measurement_noise_scale = 1.0
+```
+</details>
+<details>
+    <summary>BoTSORT</summary>
+
+```toml
+tracker = "botsort"
+max_time_lost = 15
+track_high_thresh = 0.5
+track_low_thresh = 0.1
+new_track_thresh = 0.6
+first_match_thresh = 0.3
+second_match_thresh = 0.1
+unconfirmed_match_thresh = 0.2
+proximity_thresh = 0.5
+appearance_thresh = 0.9
+
+[kalman]
+time_step = 1
+process_noise_scale = 1.0
+measurement_noise_scale = 1.0
+```
+</details>
+
 ## Compile
 
 ```shell
