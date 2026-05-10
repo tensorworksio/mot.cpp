@@ -1,2 +1,7 @@
-[wrap-redirect]
-filename = vision-core/subprojects/reflect-cpp.wrap
+[wrap-git]
+directory = reflect-cpp
+url = https://github.com/tensorworksio/reflect-cpp.git
+revision = main
+
+[provide]
+reflect-cpp = reflect_dep
