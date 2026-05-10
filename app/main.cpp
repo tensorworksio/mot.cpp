@@ -8,6 +8,7 @@
 #include <argparse/argparse.hpp>
 #include <opencv2/opencv.hpp>
 #include <types/frame.hpp>
+#include <utils/draw_utils.hpp>
 
 #include <tracking/factory.hpp>
 
@@ -44,17 +45,22 @@ SequenceInfo parseSequenceInfo(const fs::path &iniPath)
         std::string key = line.substr(0, eq);
         std::string val = line.substr(eq + 1);
 
-        auto trim = [](std::string &s) {
+        auto trim = [](std::string &s)
+        {
             s.erase(0, s.find_first_not_of(" \t\r\n"));
             s.erase(s.find_last_not_of(" \t\r\n") + 1);
         };
         trim(key);
         trim(val);
 
-        if      (key == "imDir")     info.imDir = val;
-        else if (key == "frameRate") info.frameRate = std::stod(val);
-        else if (key == "imWidth")   info.imWidth = std::stoi(val);
-        else if (key == "imHeight")  info.imHeight = std::stoi(val);
+        if (key == "imDir")
+            info.imDir = val;
+        else if (key == "frameRate")
+            info.frameRate = std::stod(val);
+        else if (key == "imWidth")
+            info.imWidth = std::stoi(val);
+        else if (key == "imHeight")
+            info.imHeight = std::stoi(val);
     }
     return info;
 }
@@ -204,7 +210,7 @@ int main(int argc, char **argv)
             out << det << "\n";
 
         // Visualize results
-        cv::Mat output = frame.draw(detections, true, true);
+        cv::Mat output = drawDetections(frame, detections, true, true);
 
         if (saveVideo)
             videoWriter.write(output);
