@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fstream>
-#include <rfl/json.hpp>
+#include <rfl/toml.hpp>
 
 #include "tracker.hpp"
 #include "sort.hpp"
@@ -47,19 +47,17 @@ inline TrackerType getTrackerType(const std::string &name)
 
 class TrackerFactory
 {
+    using TrackerConfig = rfl::TaggedUnion<"tracker", SortConfig, BotSortConfig>;
+
 public:
     static std::unique_ptr<BaseTracker> create(const std::string &config_file)
     {
-        struct TrackerFile {
-            rfl::TaggedUnion<"name", SortConfig, BotSortConfig> tracker;
-        };
-
         std::ifstream file(config_file);
-        auto result = rfl::json::read<TrackerFile, rfl::DefaultIfMissing>(file);
+        auto result = rfl::toml::read<TrackerConfig, rfl::DefaultIfMissing>(file);
         if (!result.has_value())
             throw std::runtime_error(result.error().what());
 
-        return result.value().tracker.visit([](auto &&config) -> std::unique_ptr<BaseTracker> {
+        return result.value().visit([](auto &&config) -> std::unique_ptr<BaseTracker> {
             using T = std::decay_t<decltype(config)>;
             if constexpr (std::is_same_v<T, SortConfig>)
                 return std::make_unique<Sort>(config);

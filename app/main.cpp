@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     argparse::ArgumentParser parser("mot");
     parser.add_description("Multi Object Tracker");
     parser.add_argument("-i", "--input").required().help("Path to MOT sequence folder");
-    parser.add_argument("-c", "--config").required().help("Path to tracker config.json");
+    parser.add_argument("-c", "--config").required().help("Path to tracker config.toml");
     parser.add_argument("-o", "--output").help("Path to results folder (if not provided, output to stdout)");
     parser.add_argument("--gt").flag().help("Use ground-truth detections");
     parser.add_argument("-d", "--display").flag().help("Display images");

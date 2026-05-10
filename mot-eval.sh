@@ -34,7 +34,7 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 --dataset|-d <dataset> --split|-s <split> --config|-c <config> [--output|-o <output>] [--save] [--gt]"
             echo "  dataset: MOT15, MOT16, MOT17, MOT20"
             echo "  split: train or test"
-            echo "  config: path to config file (e.g. config/sort.json)"
+            echo "  config: path to config file (e.g. config/sort.toml)"
             echo "  output: path to output folder (default: runs)"
             echo "  save: enable saving of visualization"
             echo "  gt: use ground truth (only works with train split)"
