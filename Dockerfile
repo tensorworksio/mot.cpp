@@ -64,6 +64,7 @@ COPY requirements.txt /tmp/
 RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
 
 COPY --from=builder /opt/mot.cpp/build/libmot.so /usr/local/lib/
+COPY --from=builder /opt/mot.cpp/build/subprojects/tomlplusplus-3.4.0/src/libtomlplusplus.so.3.4.0 /usr/local/lib/
 COPY --from=builder /opt/mot.cpp/build/app/mot   /usr/local/bin/mot
 COPY --from=builder /opt/mot.cpp/app/config      /opt/mot.cpp/app/config
 COPY --from=builder /opt/mot.cpp/mot-eval.sh     /opt/mot.cpp/mot-eval.sh
