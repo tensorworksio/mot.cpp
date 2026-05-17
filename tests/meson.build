@@ -5,6 +5,7 @@ test_sources = [
     'test_kalman.cpp',
     'test_sort.cpp',
     'test_botsort.cpp',
+    'test_hungarian.cpp',
 ]
 
 test_exe = executable('mot_tests',

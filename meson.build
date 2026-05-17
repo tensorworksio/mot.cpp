@@ -15,13 +15,12 @@ vision_core_proj = subproject('vision-core')
 vision_core_dep = vision_core_proj.get_variable('vision_core_dep')
 
 # 3rd party
-dlib_dep = dependency('dlib-1', method : 'pkg-config')
 opencv_dep = dependency('opencv4',
   modules : ['core', 'highgui', 'imgproc', 'imgcodecs', 'video', 'videoio'],
   include_type: 'system'
 )
 
-dependencies = [vision_core_dep, dlib_dep, opencv_dep]
+dependencies = [vision_core_dep, opencv_dep]
 
 # Source files
 src_files = files(
