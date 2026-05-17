@@ -1,7 +1,7 @@
 #include <tracking/sort.hpp>
 #include <kalman/xywh.hpp>
 #include <utils/geometry_utils.hpp>
-#include <dlib/optimization/max_cost_assignment.h>
+#include <assignment/hungarian.hpp>
 
 SortTrack::SortTrack(const cv::Rect2f &rect, const KalmanConfig &config) : BaseTrack(std::make_shared<KalmanFilterXYWH>(rect, config)) {}
 
@@ -43,24 +43,23 @@ void Sort::assign(std::vector<Detection> &detections,
     }
 
     // Create cost matrix
-    size_t size = std::max(detections.size(), tracks.size());
-    dlib::matrix<int> cost_matrix = dlib::zeros_matrix<int>(size, size);
+    int size = static_cast<int>(std::max(detections.size(), tracks.size()));
+    cv::Mat_<float> cost_matrix(size, size, 0.f);
     for (size_t i = 0; i < detections.size(); ++i)
     {
         for (size_t j = 0; j < tracks.size(); ++j)
         {
-            cost_matrix(i, j) = static_cast<int>(PRECISION * getIoU(detections[i].bbox, tracks[j]->getBox()));
+            cost_matrix(i, j) = getIoU(detections[i].bbox, tracks[j]->getBox());
         }
     }
 
     // Solve linear assignment
-    std::vector<long> assignment = dlib::max_cost_assignment(cost_matrix);
+    std::vector<long> assignment = hungarian::max_cost_assignment(cost_matrix);
 
     // Find matches
-    auto cost_thresh = static_cast<int>(PRECISION * match_thresh);
     for (size_t i = 0; i < detections.size(); ++i)
     {
-        if (cost_matrix(i, assignment[i]) < cost_thresh)
+        if (cost_matrix(i, assignment[i]) < match_thresh)
             continue;
 
         unmatched_detections.erase(i);

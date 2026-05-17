@@ -55,8 +55,11 @@ measurement_noise_scale = 1.0
 ```
 </details>
 
-## Compile
+## 🖥️ Local
 
+### Compile
+
+**Requirements:** GCC 14+, CMake, Meson, Ninja, pkg-config, OpenCV
 ```shell
 # Ensure to reset the deps
 meson subprojects update --reset
@@ -68,7 +71,7 @@ meson compile -C build
 meson test -C build
 ```
 
-## Run
+### Run
 ```shell
 cd build/app
 ./mot -h
@@ -77,11 +80,53 @@ cd build/app
 ./mot -i data/MOT20/train/<seq-name> -c config/sort.toml --display
 ```
 
-## Evaluate
+### Evaluate
+**Requirements:** Python 3.12+, numpy<2.0.0, motmetrics
+
+First, set up your Python environment and dependencies:
+```shell
+python3 -m venv venv
+./venv/bin/pip install -r requirements.txt
+```
+
+Then run the evaluation script:
 ```shell
 chmod +x mot-eval.sh
 ./mot-eval.sh --dataset data/MOT20 --split train --config app/config/sort.toml --save
 # experiment output available in runs folder
+```
+
+---
+
+## 🐳 Docker
+
+Build the image:
+```shell
+docker build -t mot.cpp .
+```
+
+Run the tracker on a dataset sequence mounted from the host:
+```shell
+# Allow Docker to connect to the X11 display server
+xhost +local:docker
+
+docker run --rm \
+    --user $(id -u):$(id -g) \
+    --env DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
+    -v $(pwd)/data:/data \
+    -v $(pwd)/app/config:/opt/mot.cpp/app/config \
+    mot.cpp -i /data/MOT20/train/MOT20-01 -c /opt/mot.cpp/app/config/sort.toml --display
+```
+
+Run evaluation across a full dataset split:
+```shell
+docker run --rm \
+    --user $(id -u):$(id -g) \
+    -v $(pwd)/data:/data \
+    -v $(pwd)/runs:/opt/mot.cpp/runs \
+    --entrypoint /opt/mot.cpp/mot-eval.sh \
+    mot.cpp --dataset /data/MOT20 --split train --config /opt/mot.cpp/app/config/sort.toml --save
 ```
 
 ## Run with your detector

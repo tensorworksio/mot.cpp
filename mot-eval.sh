@@ -56,15 +56,23 @@ if [ "$gt" = true ] && [ "$split" != "train" ]; then
     exit 1
 fi
 
-# Compile project
-meson setup build 
-meson compile -C build
+# Locate mot binary
+if command -v mot &> /dev/null; then
+    MOT_BIN="mot"
+elif [ -f "./build/app/mot" ]; then
+    MOT_BIN="./build/app/mot"
+else
+    echo "Error: mot binary not found. Compile the project first:"
+    echo "meson compile -C build"
+    exit 1
+fi
 
-# Setup Python environment
-if [ ! -d "venv" ]; then
-    echo "Creating Python virtual environment..."
-    python3 -m venv venv
-    ./venv/bin/pip3 install -r requirements
+if [ -f "venv/bin/python3" ]; then
+    PYTHON_BIN="venv/bin/python3"
+else
+    echo "Error: python venv binary not found. Create the venv first:"
+    echo "python3 -m venv venv && ./venv/bin/pip install -r requirements.txt"
+    exit 1
 fi
 
 # Get all sequence directories
@@ -97,7 +105,7 @@ for seq in $seq_dir/*; do
     if [ -d "$seq" ]; then
         seq=${seq%/}
         echo "Processing sequence: $seq"
-        cmd="./build/app/mot --input $seq --config $config --output $output_dir"
+        cmd="$MOT_BIN --input $seq --config $config --output $output_dir"
         [ "$save" = true ] && cmd="$cmd --save"
         [ "$gt" = true ] && cmd="$cmd --gt"
         $cmd
@@ -107,7 +115,7 @@ done
 # Run evaluation only for train split
 if [ "$split" = "train" ]; then
     echo "Running evaluation..."
-    ./venv/bin/python3 -m motmetrics.apps.eval_motchallenge "$dataset/$split" "$output_dir" 2>&1 | tee "$exp_dir/metrics.txt"
+    $PYTHON_BIN -m motmetrics.apps.eval_motchallenge "$dataset/$split" "$output_dir" 2>&1 | tee "$exp_dir/metrics.txt"
 else
     echo "Skipping evaluation for test split (no ground truth available)"
 fi
