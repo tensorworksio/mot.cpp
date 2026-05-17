@@ -59,7 +59,6 @@ measurement_noise_scale = 1.0
 
 ### Compile
 
-**Requirements:** GCC 14+, CMake, Meson, Ninja, pkg-config, OpenCV
 ```shell
 # Ensure to reset the deps
 meson subprojects update --reset
@@ -81,7 +80,6 @@ cd build/app
 ```
 
 ### Evaluate
-**Requirements:** Python 3.12+, numpy<2.0.0, motmetrics
 
 First, set up your Python environment and dependencies:
 ```shell
